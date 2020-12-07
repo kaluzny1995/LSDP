@@ -1,0 +1,25 @@
+Lab2_3::
+
+Celery:
+launch:
+celery -A runner worker --loglevel=warning
+launch beats:
+celery worker --loglevel=info -A runner --beat
+celery worker --loglevel=info -A worker --beat
+
+Prawidłowe:
+celery worker --app=worker.app --beat
+python3 runner.py
+
+Launch Grafana: http://localhost:3030
+
+Asynchronous tasks launching:
+celery -A runner worker -Q default
+
+Launch Redash MongoDB connnection: mongodb://mongodb:27017/reddits
+{
+	"collection": "my_collection",
+	"count": true
+}
+
+

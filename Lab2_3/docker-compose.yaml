@@ -1,0 +1,149 @@
+version: '3.4'
+services:
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    ports:
+      - "8087:8086"
+    volumes:
+      - ./db/influxdb:/var/lib/influxdb/data
+    networks:
+      - spark_mdb
+  
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - spark_mdb
+  
+  worker:
+    build: .
+    image: &img worker
+    command: [celery, worker, --app=worker.app, --beat]
+    environment: &env      
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
+      - CELERY_RESULT_BACKEND=rpc
+    depends_on:
+      - rabbitmq
+    links:
+      - influxdb:database
+    volumes:
+      - ./app:/app
+    networks:
+      - spark_mdb
+  
+  embedder:
+    build: .
+    image: *img
+    command: [celery, worker, --app=embedder.app, --queues=embedding_tasks]
+    environment: *env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./app:/app
+    networks:
+      - spark_mdb
+  
+  mongodb_worker:
+    build: .
+    image: *img
+    command: [celery, worker, --app=mongodb_worker.app, --queues=mongodb_tasks]
+    environment: *env
+    depends_on:
+      - rabbitmq
+    links:
+      - mongodb:mdatabase
+    volumes:
+      - ./app:/app
+    networks:
+      - spark_mdb
+
+  rabbitmq:
+    image: rabbitmq:3.8
+    networks:
+      - spark_mdb
+
+  grafana:
+    image: grafana/grafana:5.2.4
+    user: "1000"
+    container_name: grafana
+    ports:
+      - "3030:3000"
+    links:
+      - influxdb
+    volumes:
+      - ./db/grafana:/var/lib/grafana
+    networks:
+      - spark_mdb
+  
+  db_setup:
+    image: redash/redash
+    command: create_db
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      PYTHONUNBUFFERED: 0
+      REDASH_LOG_LEVEL: "INFO"
+      REDASH_REDIS_URL: "redis://redis:6380/0"
+      REDASH_DATABASE_URL: "postgresql://postgres@postgres/postgres"
+      REDASH_RATELIMIT_ENABLED: "false"
+    networks:
+      - spark_mdb
+  server:
+    image: redash/redash
+    command: server
+    depends_on:
+      - db_setup
+    ports:
+      - "5000:5000"
+      - "5678:5678"
+    environment:
+      PYTHONUNBUFFERED: 0
+      REDASH_LOG_LEVEL: "INFO"
+      REDASH_REDIS_URL: "redis://redis:6380/0"
+      REDASH_DATABASE_URL: "postgresql://postgres@postgres/postgres"
+      REDASH_RATELIMIT_ENABLED: "false"
+    networks:
+      - spark_mdb
+  redash_worker:
+    image: redash/redash
+    command: worker
+    depends_on:
+      - server
+    environment:
+      PYTHONUNBUFFERED: 0
+      REDASH_LOG_LEVEL: "INFO"
+      REDASH_REDIS_URL: "redis://redis:6380/0"
+      REDASH_DATABASE_URL: "postgresql://postgres@postgres/postgres"
+      QUEUES: "queries,scheduled_queries,celery,schemas"
+      WORKERS_COUNT: 4
+    networks:
+      - spark_mdb
+  redis:
+    image: redis:3-alpine
+    restart: unless-stopped
+    command: --port 6380
+    ports:
+      - "6380:6380"
+    expose:
+      - "6380"
+    networks:
+      - spark_mdb
+  postgres:
+    image: postgres:9.5-alpine
+    ports:
+      - "15432:5432"
+    command: "postgres"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+    restart: unless-stopped
+    networks:
+      - spark_mdb
+    
+networks:
+  spark_mdb:
+    external: true
+

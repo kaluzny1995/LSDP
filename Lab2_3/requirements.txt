@@ -1,0 +1,7 @@
+numpy
+celery==4.3.1
+influxdb
+pymongo
+praw
+fasttext
+nltk
