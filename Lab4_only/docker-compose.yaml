@@ -1,0 +1,19 @@
+version: '3.4'
+services:
+  spark:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    image: spark_worker
+    networks:
+      - spark_mdb
+    command: [python, spark_worker.py]
+    external_links:
+      - mongodb
+    volumes:
+      - ./app:/app
+  
+networks:
+  spark_mdb:
+    #driver: bridge
+    external: true
