@@ -1,0 +1,54 @@
+{% extends "_base.html" %}
+
+{% block content %}
+
+<div class="starter-template">
+    <h1>Flask&nbsp;+&nbsp;Spark&nbsp;SPA</h1>
+    <hr><br /><br />
+    <div id="alerts"></div>
+    <br />
+    <div>
+      <h4>Reddit scraped data summary</h4>
+      <div id="data-info-table" class="table-responsive-sm"></div>
+      <div id="ml-info-table" class="table-responsive-sm"></div>
+    </div>
+    <br />
+    <div>
+      <h3>Try it now...</h3>
+      <div class="input-group mb-3">
+        <!--<div class="input-group-prepend">
+          <span id="retrain" class="btn btn-warning input-group-text">Retrain models<span style="visibility:hidden">&nbsp;&nbsp;&nbsp;<i class="fa fa-refresh fa-spin fa-1x fa-fw"></i></span></span>
+        </div>-->
+        <input type="text" id="text-input" class="form-control" aria-label="Amount (to the nearest dollar)" placeholder="Type in text...">
+        <div class="input-group-append">
+          <span id="launch" class="btn btn-info input-group-text">Launch<span style="visibility:hidden">&nbsp;&nbsp;&nbsp;<i class="fa fa-refresh fa-spin fa-1x fa-fw"></i></span></span>
+        </div>
+      </div>
+    </div>
+    <br />
+    <div>
+      <h4>Results</h4>
+      <div id="results-table" class="table-responsive-sm"></div>
+    </div>
+    <hr><br /><br />
+    <div>
+      <h3>Submissions from MongoDB</h3><br />
+      <button type="button" id="load" class="btn btn-info">Load submissions<span style="visibility:hidden">&nbsp;&nbsp;&nbsp;<i class="fa fa-refresh fa-spin fa-1x fa-fw"></i></span></button>
+      <br /><br />
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Author</th>
+            <th>Title</th>
+            <th>Date &amp; time</th>
+          </tr>
+        </thead>
+        <tbody id="submissions">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
