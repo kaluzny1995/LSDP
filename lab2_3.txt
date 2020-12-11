@@ -1,4 +1,9 @@
-Lab2_3::
+Lista02:::
+
+Reddit:
+api key: qWQGg1Nj2sRK3A
+secret: c-bAK5nngccK1ybY7o7VMDUnkys
+user: kaluzny1995
 
 Celery:
 launch:
@@ -12,13 +17,23 @@ celery worker --app=worker.app --beat
 python3 runner.py
 
 Launch Grafana: http://localhost:3030
+First logging credentials: [admin, admin]
+Then: [admin, admin1]
 
 Asynchronous tasks launching:
 celery -A runner worker -Q default
 
-Launch Redash MongoDB connnection: mongodb://mongodb:27017/reddits
+Launch Redash: http://localhost:5000
+First logging credentials: [admin1@admin1.com, admin1]
+
+Redash MongoDB connnection:
+   Name: mymongodb
+   Connection String: mongodb://mongodb:27017/reddits
+   Database Name: reddits
+
+Simple counting redash query:
 {
-	"collection": "my_collection",
+	"collection": "submissions",
 	"count": true
 }
 

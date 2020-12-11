@@ -3,7 +3,7 @@ from celery import Celery
 from docker_logs import get_logger
 from pymongo import MongoClient
 
-logging = get_logger("embedder")
+logging = get_logger("mongodb_worker")
 app = Celery('celery_base', broker='amqp://localhost//', backend='amqp')
 mongo_client = MongoClient(host='mongodb', port=27017)
 

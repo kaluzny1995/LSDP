@@ -1,7 +1,7 @@
 version: '3.4'
 services:
   influxdb:
-    image: influxdb:latest
+    image: influxdb:1.8
     container_name: influxdb
     ports:
       - "8087:8086"
@@ -11,10 +11,12 @@ services:
       - spark_mdb
   
   mongodb:
-    image: mongo:latest
+    image: mongo:4.4
     container_name: mongodb
     ports:
       - "27017:27017"
+    volumes:
+      - ./db/mongo:/data/db
     networks:
       - spark_mdb
   
@@ -22,41 +24,10 @@ services:
     build: .
     image: &img worker
     command: [celery, worker, --app=worker.app, --beat]
-    environment: &env      
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672
-      - CELERY_RESULT_BACKEND=rpc
     depends_on:
       - rabbitmq
     links:
-      - influxdb:database
-    volumes:
-      - ./app:/app
-    networks:
-      - spark_mdb
-  
-  embedder:
-    build: .
-    image: *img
-    command: [celery, worker, --app=embedder.app, --queues=embedding_tasks]
-    environment: *env
-    depends_on:
-      - rabbitmq
-    volumes:
-      - ./app:/app
-    networks:
-      - spark_mdb
-  
-  mongodb_worker:
-    build: .
-    image: *img
-    command: [celery, worker, --app=mongodb_worker.app, --queues=mongodb_tasks]
-    environment: *env
-    depends_on:
-      - rabbitmq
-    links:
-      - mongodb:mdatabase
-    volumes:
-      - ./app:/app
+      - influxdb
     networks:
       - spark_mdb
 
@@ -130,6 +101,8 @@ services:
       - "6380:6380"
     expose:
       - "6380"
+    volumes:
+      - ./db/redash:/data
     networks:
       - spark_mdb
   postgres:
