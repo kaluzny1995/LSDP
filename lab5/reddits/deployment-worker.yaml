@@ -1,0 +1,19 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deploy
+spec:
+  selector:
+    matchLabels:
+      app: reddits
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      containers:
+      - name: worker
+        image: &img kaluzny1995/worker:latest
+        command: ['celery', 'worker', '--app=worker.app', '--beat']

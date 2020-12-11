@@ -1,4 +1,5 @@
-AWS access key id: ***********
-AWS secret: **********************************
+AWS access key id: AKIA3XXQRIGG4BKOKI7P
+AWS secret: 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
 Default region: eu-central-1
 Default output format: json
+
