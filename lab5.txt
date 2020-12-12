@@ -1,0 +1,6 @@
+AWS access key id: *******************
+AWS secret: ***********************************
+Default region: eu-central-1
+Default output format: json
+
+You have to create your own access key id and secret.
