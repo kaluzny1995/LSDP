@@ -4,7 +4,7 @@ kind: StatefulSet
 metadata:
   name: rabbitmq-sts
 spec:
-  serviceName: rabbitmq-svc
+  serviceName: "rabbitmq-svc"
   selector:
     matchLabels:
       app: reddits
