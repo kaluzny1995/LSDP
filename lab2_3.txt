@@ -1,9 +1,11 @@
 Lista02:::
 
 Reddit:
-api key: qWQGg1Nj2sRK3A
-secret: c-bAK5nngccK1ybY7o7VMDUnkys
+api key: ***********
+secret: *******************
 user: kaluzny1995
+
+You have to create your own Reddit API credentials.
 
 Celery:
 launch:
@@ -36,5 +38,4 @@ Simple counting redash query:
 	"collection": "submissions",
 	"count": true
 }
-
 
