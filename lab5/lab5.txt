@@ -1,0 +1,53 @@
+stack name: jakub-stack0
+
+AWS access key id: ***************
+AWS secret: ******************************
+Default region: eu-central-1
+Default output format: json
+
+You have to get your own AWS access credentials.
+
+Redash
+
+kubectl apply -f redash.yaml
+
+kubectl delete deploy/redash-deploy
+kubectl delete sts/postgres-sts
+kubectl delete svc/postgres
+kubectl delete svc/redash-svc
+kubectl delete svc/redis
+kubectl delete job/redash-job
+kubectl delete cm/postgres-cm
+kubectl delete cm/redash-cm
+kubectl delete pvc/postgres-pvc
+kubectl delete pv/postgres-pv
+
+Forward redash port:
+kubectl port-forward redash-deploy-7f8ddd9dc7-kgj9k 5000:5000
+# Warning! You have to give a right pod name. In thos case: redash-deploy-7f8ddd9dc7-kgj9k
+
+Launch Redash: http://127.0.0.1:5000/
+First logging credentials: [Login: admin; E-mail: admin@admin.com, Password: admin1]
+
+Redash MongoDB connnection:
+   Name: mymongodb
+   Connection String: mongodb://mongodb-svc:27017/reddits
+   Database Name: reddits
+
+Simple counting redash query:
+{
+	"collection": "submissions",
+	"count": true
+}
+
+
+Grafana
+
+kubectl apply -f grafana.yaml
+
+kubectl delete deploy/grafana-deploy
+kubectl delete svc/grafana-svc
+kubectl delete pvc/grafana-pvc
+kubectl delete pv/grafana-pv
+
+
