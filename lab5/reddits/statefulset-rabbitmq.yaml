@@ -15,7 +15,7 @@ spec:
         app: reddits
     spec:
       containers:
-      - name: rabbitmq
-        image: rabbitmq:3.8
-        ports:
+       - name: rabbitmq
+         image: rabbitmq:3.8
+         ports:
           - containerPort: 5672
