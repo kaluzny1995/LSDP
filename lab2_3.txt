@@ -1,22 +1,17 @@
 Lista02:::
 
 Reddit:
-api key: ***********
-secret: *******************
+api key: ****************
+secret: *************************
 user: kaluzny1995
 
-You have to create your own Reddit API credentials.
+You have to provide your own Reddit API credentials.
 
 Celery:
 launch:
 celery -A runner worker --loglevel=warning
 launch beats:
-celery worker --loglevel=info -A runner --beat
 celery worker --loglevel=info -A worker --beat
-
-Prawidłowe:
-celery worker --app=worker.app --beat
-python3 runner.py
 
 Launch Grafana: http://localhost:3030
 First logging credentials: [admin, admin]
@@ -26,7 +21,7 @@ Asynchronous tasks launching:
 celery -A runner worker -Q default
 
 Launch Redash: http://localhost:5000
-First logging credentials: [admin1@admin1.com, admin1]
+First logging credentials: [Login: admin; E-mail: admin@admin.com, Password: admin1]
 
 Redash MongoDB connnection:
    Name: mymongodb
@@ -38,4 +33,5 @@ Simple counting redash query:
 	"collection": "submissions",
 	"count": true
 }
+
 

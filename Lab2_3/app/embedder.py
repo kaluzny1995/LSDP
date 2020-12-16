@@ -19,8 +19,8 @@ ft_model = fasttext.load_model(model_name)
 def embedding(self, work, submissions):
     """Embedds given submissions texts."""
     total = sum([len(s["comments"]) for s in submissions])
-    logging.warning(f'{work}: Submissions embedded: {len(submissions)}'
-                    f'with total {total} comments')
+    logging.info(f'{work}: Submissions {len(submissions)} embedded'
+                 f' with total {total} comments')
     for submission in submissions:
         subm_vectors = [ft_model[token] for token in
                         tokenizer.tokenize(submission['text'])]

@@ -4,7 +4,7 @@ services:
     image: influxdb:1.8
     container_name: influxdb
     ports:
-      - "8087:8086"
+      - "8086:8086"
     volumes:
       - ./db/influxdb:/var/lib/influxdb/data
     networks:
@@ -13,21 +13,29 @@ services:
   mongodb:
     image: mongo:4.4
     container_name: mongodb
+    command: mongod
     ports:
       - "27017:27017"
     volumes:
       - ./db/mongo:/data/db
+      - ./conf/mongo:/data/configdb
     networks:
       - spark_mdb
   
   worker:
     build: .
-    image: &img worker
+    image: worker
     command: [celery, worker, --app=worker.app, --beat]
     depends_on:
       - rabbitmq
-    links:
-      - influxdb
+    environment:
+      CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq:5672"
+      CELERY_RESULT_BACKEND: "rpc"
+      CELERYBEAT_MINUTES_INTERVAL: 5
+      INFLUXDB_HOST: "influxdb"
+      INFLUXDB_PORT: 8086
+      MONGODB_HOST: "mongodb"
+      MONGODB_PORT: 27017
     networks:
       - spark_mdb
 
@@ -96,7 +104,7 @@ services:
   redis:
     image: redis:3-alpine
     restart: unless-stopped
-    command: --port 6380
+    command: redis-server --port 6380 --appendonly yes
     ports:
       - "6380:6380"
     expose:

@@ -6,9 +6,6 @@ RUN pip install --no-cache-dir -r requirements.txt  && rm requirements.txt
 
 RUN useradd -ms /bin/bash celery
 
-ENV CELERY_BROKER_URL="amqp://guest:guest@rabbitmq:5672"
-ENV CELERY_RESULT_BACKEND="rpc"
-
 WORKDIR /app
 COPY app ./
 

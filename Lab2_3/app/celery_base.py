@@ -1,4 +1,5 @@
 """Base of all celery processes."""
+import os
 from celery import Celery
 from kombu import Queue
 from influxdb import InfluxDBClient
@@ -11,7 +12,8 @@ from influxdb_scripts import create_db, insert_submissions
 logging = get_logger("celery_base")
 
 app = Celery('celery_base', broker='amqp://localhost//', backend='amqp')
-db_client = InfluxDBClient(host="database", port=8086)
+db_client = InfluxDBClient(host=os.environ['INFLUXDB_HOST'],
+                           port=int(os.environ['INFLUXDB_PORT']))
 
 app.conf.task_default_queue = 'default'
 app.conf.task_queues = (
@@ -34,9 +36,15 @@ def submissions(self, work, topic, count, type, interval):
         embedding.apply_async(args=['embedder', submissions],
                               queue='embedding_tasks')
 
-    db_name = 'celery'
-    if db_name not in [db['name'] for db in db_client.get_list_database()]:
-        create_db(db_client, db_name)
-        logging.info(f'{work}: Database created: {db_name}')
-    insert_submissions(db_client, db_name, submissions)
+    try:
+        db_name = 'celery'
+        if db_name not in [db['name'] for db in db_client.get_list_database()]:
+            create_db(db_client, db_name)
+            logging.info(f'{work}: Database created: {db_name}')
+        insert_submissions(db_client, db_name, submissions)
+        logging.info(f'{work}: {len(submissions)} submissions saved into'
+                     f' InfluxDB.')
+    except Exception as e:
+        logging.error(f'{work}: InfluxDB saving error: {e}')
+
     return submissions
