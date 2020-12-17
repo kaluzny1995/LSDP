@@ -1,3 +1,5 @@
+List 05:::
+
 stack name: jakub-stack0
 
 AWS access key id: ***************
@@ -7,24 +9,35 @@ Default output format: json
 
 You have to get your own AWS access credentials.
 
+Grafana
+
+kubectl apply -f grafana.yaml
+
+kubectl delete deploy/grafana-deploy svc/grafana-svc pvc/grafana-pvc pv/grafana-pv
+
+Forward grafana port:
+kubectl port-forward grafana-deploy-6cbfb79f98-g7wf5 3000:3000
+# Warning! You have to give a right pod name. In this case: grafana-deploy-6cbfb79f98-g7wf5
+
+Launch Grafana: http://127.0.0.1:3000/
+First logging credentials: [Login: admin; Password: admin]
+
+Grafana InfluxDB connnection:
+   Name: myinfluxdb
+   URL: http://influxdb-svc:8086
+   Type: proxy
+   Database: celery
+
+
 Redash
 
 kubectl apply -f redash.yaml
 
-kubectl delete deploy/redash-deploy
-kubectl delete sts/postgres-sts
-kubectl delete svc/postgres
-kubectl delete svc/redash-svc
-kubectl delete svc/redis
-kubectl delete job/redash-job
-kubectl delete cm/postgres-cm
-kubectl delete cm/redash-cm
-kubectl delete pvc/postgres-pvc
-kubectl delete pv/postgres-pv
+kubectl delete deploy/redash-deploy sts/postgres-sts svc/postgres svc/redash-svc svc/redis job/redash-job cm/postgres-cm cm/redash-cm pvc/postgres-pvc pv/postgres-pv
 
 Forward redash port:
 kubectl port-forward redash-deploy-7f8ddd9dc7-kgj9k 5000:5000
-# Warning! You have to give a right pod name. In thos case: redash-deploy-7f8ddd9dc7-kgj9k
+# Warning! You have to give a right pod name. In this case: redash-deploy-7f8ddd9dc7-kgj9k
 
 Launch Redash: http://127.0.0.1:5000/
 First logging credentials: [Login: admin; E-mail: admin@admin.com, Password: admin1]
@@ -40,14 +53,5 @@ Simple counting redash query:
 	"count": true
 }
 
-
-Grafana
-
-kubectl apply -f grafana.yaml
-
-kubectl delete deploy/grafana-deploy
-kubectl delete svc/grafana-svc
-kubectl delete pvc/grafana-pvc
-kubectl delete pv/grafana-pv
 
 
