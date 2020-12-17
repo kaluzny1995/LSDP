@@ -11,6 +11,7 @@ You have to get your own AWS access credentials.
 
 
 
+KUBERNETES:
 RabbitMQ:
 
 kubectl apply -f rabbitmq.yaml
@@ -77,4 +78,5 @@ Simple counting redash query:
 }
 
 
+HELM:
 

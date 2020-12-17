@@ -1,0 +1,6 @@
+apiVersion: v2
+name: reddits
+description: An application Helm chart deployed on Kubernetes cluster for scraping Reddit reddits and persistence them in databases.
+type: application
+version: 0.1.0
+appVersion: 1.16.0
