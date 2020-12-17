@@ -14,14 +14,12 @@ def insert_submissions(client, db_name, submissions):
         {
             "measurement": "tasks",
             "tags": {
-                "user": "admin"
+                "tag": submission['id']
             },
             "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "fields": {
                 'id': submission['id'],
                 'author': submission['author'],
-                'title': submission['title'],
-                'full_name': submission['full_name'],
                 'score': submission['score'],
                 'upvote_ratio': submission['upvote_ratio'],
                 'time': datetime.fromtimestamp(int(submission['time'])).

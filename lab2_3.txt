@@ -1,4 +1,4 @@
-Lista02:::
+List02:::
 
 Reddit:
 api key: ****************
@@ -9,16 +9,22 @@ You have to provide your own Reddit API credentials.
 
 Celery:
 launch:
-celery -A runner worker --loglevel=warning
+celery -A worker --loglevel=warning
 launch beats:
 celery worker --loglevel=info -A worker --beat
 
+Asynchronous tasks launching:
+celery -A worker -Q default
+
 Launch Grafana: http://localhost:3030
 First logging credentials: [admin, admin]
-Then: [admin, admin1]
+Change to: [admin, admin1]
 
-Asynchronous tasks launching:
-celery -A runner worker -Q default
+Grafana InfluxDB connnection:
+   Name: myinfluxdb
+   URL: http://localhost:8086
+   Access: Browser
+   Database: celery
 
 Launch Redash: http://localhost:5000
 First logging credentials: [Login: admin; E-mail: admin@admin.com, Password: admin1]
@@ -35,3 +41,5 @@ Simple counting redash query:
 }
 
 
+
+Remove all Docker images: docker rmi -f $(docker images -a -q)

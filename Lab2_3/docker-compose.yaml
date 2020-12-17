@@ -49,7 +49,7 @@ services:
     user: "1000"
     container_name: grafana
     ports:
-      - "3030:3000"
+      - "3000:3000"
     links:
       - influxdb
     volumes:
