@@ -9,7 +9,30 @@ Default output format: json
 
 You have to get your own AWS access credentials.
 
-Grafana
+
+
+RabbitMQ:
+
+kubectl apply -f rabbitmq.yaml
+
+kubectl delete sts/rabbitmq-sts svc/rabbitmq-svc
+
+
+InfluxDB:
+
+kubectl apply -f influxdb.yaml
+
+kubectl delete sts/influxdb-sts svc/influxdb-svc pvc/influxdb-pvc pv/influxdb-pv
+
+
+MongoDB:
+
+kubectl apply -f mongodb.yaml
+
+kubectl delete sts/mongodb-sts svc/mongodb-svc pvc/mongodb-pvc pv/mongodb-pv
+
+
+Grafana:
 
 kubectl apply -f grafana.yaml
 
@@ -29,7 +52,7 @@ Grafana InfluxDB connnection:
    Database: celery
 
 
-Redash
+Redash:
 
 kubectl apply -f redash.yaml
 
