@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.worker.deployment.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: {{ .Values.worker.deployment.container.name }}
+        image: {{ .Values.worker.deployment.container.image }}
+        imagePullPolicy: Always
+        env:
+          - name: CELERY_BROKER_URL
+            value: "amqp://guest:guest@{{ .Values.rabbitMQ.service.name }}:{{ .Values.rabbitMQ.service.port }}"
+          - name: CELERY_RESULT_BACKEND
+            value: "rpc"
+          - name: CELERYBEAT_MINUTES_INTERVAL
+            value: "{{ .Values.worker.deployment.scheduleMins }}"
+          - name: INFLUXDB_HOST
+            value: "{{ .Values.influxDB.service.name }}"
+          - name: INFLUXDB_PORT
+            value: "{{ .Values.influxDB.service.port }}"
+          - name: MONGODB_HOST
+            value: "{{ .Values.mongoDB.service.name }}"
+          - name: MONGODB_PORT
+            value: "{{ .Values.mongoDB.service.port }}"
+        command: ['celery', 'worker', '--app=worker.app', '--beat']
+        livenessProbe:
+          exec:
+            command:
+              - echo
+              - "Liveness check OK."
+          initialDelaySeconds: {{ .Values.worker.deployment.container.liveDelay }}
+          periodSeconds: {{ .Values.worker.deployment.container.livePeriod }}
+
+        readinessProbe:
+          exec:
+            command:
+              - echo
+              - "Readiness check OK."
+          initialDelaySeconds: {{ .Values.worker.deployment.container.readiDelay }}
+          periodSeconds: {{ .Values.worker.deployment.container.readiPeriod }}

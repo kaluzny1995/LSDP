@@ -7,7 +7,7 @@ AWS secret: ******************************
 Default region: eu-central-1
 Default output format: json
 
-You have to get your own AWS access credentials.
+You have to provide your own AWS access credentials.
 
 
 
@@ -17,6 +17,13 @@ RabbitMQ:
 kubectl apply -f rabbitmq.yaml
 
 kubectl delete sts/rabbitmq-sts svc/rabbitmq-svc
+
+
+Worker:
+
+kubectl apply -f worker.yaml
+
+kubectl delete deploy/worker-deploy
 
 
 InfluxDB:
@@ -78,5 +85,8 @@ Simple counting redash query:
 }
 
 
+Info: In order not to deploy Kubernetes components file after file type in 'bash deploy.sh'. To delete all components type 'bash undeploy.sh'.
+
 HELM:
+Show rendered templates: helm install reddits reddits --dry-run --debug
 

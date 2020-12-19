@@ -1,0 +1,202 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.redash.configMap.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+data:
+  PYTHONUNBUFFERED: "0"
+  REDASH_LOG_LEVEL: "INFO"
+  REDASH_REDIS_URL: "redis://redis:6379/0"
+  REDASH_DATABASE_URL: "postgresql://postgres:postgres@postgres/postgres"
+  QUEUES: "queries,scheduled_queries,celery,schemas"
+  WORKERS_COUNT: "4"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.redash.deployment.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.redash.deployment.container.nameRedash }}
+          image: {{ .Values.redash.deployment.container.imageRedash }}
+          args: ['server']
+          ports:
+            - name: redash
+              containerPort: {{ .Values.redash.deployment.container.portRedash }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+
+        - name: {{ .Values.redash.deployment.container.nameRedash }}-worker
+          image: {{ .Values.redash.deployment.container.imageRedash }}
+          args: ['worker']
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+
+        - name: {{ .Values.redash.deployment.container.nameRedis }}
+          image: {{ .Values.redash.deployment.container.imageRedis }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redash.deployment.container.portRedis }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.redash.job.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.redash.job.container.name }}
+          image: {{ .Values.redash.job.container.image }}
+          args: ['create_db']
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redash.service.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
+    - port: {{ .Values.redash.service.port }}
+      targetPort: {{ .Values.redash.service.port }}
+      name: http
+  selector:
+    {{- include "reddits.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.redis.service.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: {{ .Values.redis.service.port }}
+      targetPort: {{ .Values.redis.service.port }}
+      name: redis
+  selector:
+    {{- include "reddits.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.postgres.configMap.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+data:
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "postgres"
+  POSTGRES_DB: "postgres"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.postgres.service.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  ports:
+    - port: {{ .Values.postgres.service.port }}
+      name: postgres
+  clusterIP: None
+  selector:
+    {{- include "reddits.selectorLabels" . | nindent 4 }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ .Values.postgres.persistentVolume.name }}
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/postgres_data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.postgres.persistentVolumeClaim.name }}
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.postgres.statefulset.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: "{{ .Values.postgres.service.name }}"
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.postgres.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.postgres.persistentVolumeClaim.name }}
+      containers:
+        - name: {{ .Values.postgres.statefulset.container.name }}
+          image: {{ .Values.postgres.statefulset.container.image }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.postgres.configMap.name }}
+          ports:
+            - name: postgresdb
+              containerPort: {{ .Values.postgres.statefulset.container.port }}
+          volumeMounts:
+            - name: {{ .Values.postgres.persistentVolume.name }}
+              mountPath: /var/lib/postgresql/data

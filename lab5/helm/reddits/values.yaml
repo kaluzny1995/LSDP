@@ -1,10 +1,4 @@
-replicaCount: 1
-
-# Common
-common:
-  service:
-    ClusterIPType: ClusterIP
-    NodePortType: NodePort
+replicaCount: 2
 
 # RabbitMQ
 rabbitMQ:
@@ -13,15 +7,122 @@ rabbitMQ:
     port: 5672
   statefulset:
     name: rabbitmq-sts
-    replicaCount: 1
     container:
       name: rabbitmq
       image: rabbitmq:3.8
       port: 5672
   
 
-
 # Worker
+worker:
+  deployment:
+    name: worker-deploy
+    container:
+      name: worker
+      image: kaluzny1995/worker:latest
+      liveDelay: 45
+      livePeriod: 20
+      readiDelay: 20
+      readiPeriod: 10
+    scheduleMins: 2
+
+
+# InfluxDB
+influxDB:
+  service:
+    name: influxdb-svc
+    port: 8086
+  persistentVolume:
+    name: influxdb-pv
+  persistentVolumeClaim:
+    name: influxdb-pvc
+  statefulset:
+    name: influxdb-sts
+    container:
+      name: influxdb
+      image: influxdb:1.8
+      port: 8086
+
+
+# MongoDB
+mongoDB:
+  service:
+    name: mongodb-svc
+    port: 27017
+  persistentVolume:
+    name: mongodb-pv
+  persistentVolumeClaim:
+    name: mongodb-pvc
+  statefulset:
+    name: mongodb-sts
+    container:
+      name: mongodb
+      image: mongo:4.4
+      port: 27017
+
+
+# Grafana
+grafana:
+  service:
+    name: grafana-svc
+    port: 3000
+  persistentVolume:
+    name: grafana-pv
+  persistentVolumeClaim:
+    name: grafana-pvc
+  deployment:
+    name: grafana-deploy
+    container:
+      name: grafana
+      image: grafana/grafana:5.0.0
+      port: 3000
+
+
+# Redash
+redash:
+  configMap:
+    name: redash-cm
+  deployment:
+    name: redash-deploy
+    container:
+      nameRedash: redash
+      imageRedash: redash/redash
+      portRedash: 5000
+      nameRedis: redis
+      imageRedis: redis:3.0-alpine
+      portRedis: 6379
+  job:
+    name: redash-job
+    container:
+      name: redash-db-init
+      image: redash/redash
+  service:
+    name: redash-svc
+    port: 5000
+
+redis:
+  service:
+    name: redis
+    port: 6379
+
+postgres:
+  configMap:
+    name: postgres-cm
+  service:
+    name: postgres
+    port: 5432
+  persistentVolume:
+    name: postgres-pv
+  persistentVolumeClaim:
+    name: postgres-pvc
+  statefulset:
+    name: postgres-sts
+    container:
+      name: postgres
+      image: postgres:9.5-alpine
+      port: 5432
+
+
 
 image:
   repository: nginx
@@ -89,7 +190,7 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 

@@ -33,3 +33,18 @@ spec:
           - name: MONGODB_PORT
             value: "27017"
         command: ['celery', 'worker', '--app=worker.app', '--beat']
+        livenessProbe:
+          exec:
+            command:
+              - echo
+              - "Liveness check OK."
+          initialDelaySeconds: 45
+          periodSeconds: 20
+
+        readinessProbe:
+          exec:
+            command:
+              - echo
+              - "Readiness check OK."
+          initialDelaySeconds: 20
+          periodSeconds: 10

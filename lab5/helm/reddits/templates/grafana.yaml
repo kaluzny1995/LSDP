@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.grafana.service.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
+    - port: {{ .Values.grafana.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "reddits.selectorLabels" . | nindent 4 }}
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: {{ .Values.grafana.persistentVolume.name }}
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/db/grafana"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.grafana.persistentVolumeClaim.name }}
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.grafana.deployment.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.grafana.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.grafana.persistentVolumeClaim.name }}
+      containers:
+       - name: {{ .Values.grafana.deployment.container.name }}
+         image: {{ .Values.grafana.deployment.container.image }}
+         ports:
+           - name: http
+             containerPort: {{ .Values.grafana.deployment.container.port }}
+             protocol: TCP
+         volumeMounts:
+          - name: {{ .Values.grafana.persistentVolume.name }}
+            mountPath: /var/lib/grafana
