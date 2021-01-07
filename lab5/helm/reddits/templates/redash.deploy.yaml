@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.redash.deployment.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.redash.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.redash.deployment.container.nameRedash }}
+          image: {{ .Values.redash.deployment.container.imageRedash }}
+          args: ['server']
+          ports:
+            - name: redash
+              containerPort: {{ .Values.redash.deployment.container.portRedash }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+
+        - name: {{ .Values.redash.deployment.container.nameRedash }}-worker
+          image: {{ .Values.redash.deployment.container.imageRedash }}
+          args: ['worker']
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+
+        - name: {{ .Values.redash.deployment.container.nameRedis }}
+          image: {{ .Values.redash.deployment.container.imageRedis }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redash.deployment.container.portRedis }}

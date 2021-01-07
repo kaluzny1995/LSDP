@@ -1,0 +1,41 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.mongoDB.statefulset.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mongoDB.statefulset.replicaCount }}
+  serviceName: "{{ .Values.mongoDB.service.name }}"
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: {{ .Values.mongoDB.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.mongoDB.persistentVolumeClaim.name }}
+      containers:
+        - name: {{ .Values.mongoDB.statefulset.container.name }}
+          image: {{ .Values.mongoDB.statefulset.container.image }}
+          command:
+            - mongod
+            - "--bind_ip"
+            - 0.0.0.0
+          ports:
+            - name: http
+              containerPort: {{ .Values.mongoDB.statefulset.container.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: {{ .Values.mongoDB.persistentVolume.name }}
+              mountPath: /data/db

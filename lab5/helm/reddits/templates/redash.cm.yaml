@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.redash.configMap.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+data:
+  PYTHONUNBUFFERED: "0"
+  REDASH_LOG_LEVEL: "INFO"
+  REDASH_REDIS_URL: "redis://redis:6379/0"
+  REDASH_DATABASE_URL: "postgresql://postgres:postgres@postgres/postgres"
+  QUEUES: "queries,scheduled_queries,celery,schemas"
+  WORKERS_COUNT: "4"

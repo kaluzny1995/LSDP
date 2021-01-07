@@ -1,0 +1,38 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.postgres.statefulset.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.postgres.statefulset.replicaCount }}
+  serviceName: "{{ .Values.postgres.service.name }}"
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.postgres.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.postgres.persistentVolumeClaim.name }}
+      containers:
+        - name: {{ .Values.postgres.statefulset.container.name }}
+          image: {{ .Values.postgres.statefulset.container.image }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.postgres.configMap.name }}
+          ports:
+            - name: postgresdb
+              containerPort: {{ .Values.postgres.statefulset.container.port }}
+          volumeMounts:
+            - name: {{ .Values.postgres.persistentVolume.name }}
+              mountPath: /var/lib/postgresql/data

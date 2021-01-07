@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.grafana.deployment.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.grafana.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.grafana.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.grafana.persistentVolumeClaim.name }}
+      containers:
+       - name: {{ .Values.grafana.deployment.container.name }}
+         image: {{ .Values.grafana.deployment.container.image }}
+         ports:
+           - name: http
+             containerPort: {{ .Values.grafana.deployment.container.port }}
+             protocol: TCP
+         volumeMounts:
+          - name: {{ .Values.grafana.persistentVolume.name }}
+            mountPath: /var/lib/grafana

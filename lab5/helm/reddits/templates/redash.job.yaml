@@ -1,0 +1,25 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.redash.job.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.redash.job.container.name }}
+          image: {{ .Values.redash.job.container.image }}
+          args: ['create_db']
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.redash.configMap.name }}
+      restartPolicy: OnFailure

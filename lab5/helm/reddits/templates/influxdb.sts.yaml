@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.influxDB.statefulset.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.influxDB.statefulset.replicaCount }}
+  serviceName: "{{ .Values.influxDB.service.name }}"
+  selector:
+    matchLabels:
+      {{- include "reddits.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "reddits.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+        - name: {{ .Values.influxDB.persistentVolume.name }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.influxDB.persistentVolumeClaim.name }}
+      containers:
+        - name: {{ .Values.influxDB.statefulset.container.name }}
+          image: {{ .Values.influxDB.statefulset.container.image }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.influxDB.statefulset.container.port }}
+              protocol: TCP
+          volumeMounts:
+            - name: {{ .Values.influxDB.persistentVolume.name }}
+              mountPath: /var/lib/influxdb
