@@ -1,9 +1,0 @@
-nltk
-fasttext
-numpy
-Flask==0.12.2
-Flask-Script==2.0.6
-Flask-WTF==0.14.2
-werkzeug==0.16.1
-redis==2.10.6
-rq==0.12.0
