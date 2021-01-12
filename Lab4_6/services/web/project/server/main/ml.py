@@ -3,88 +3,101 @@ import os
 import shutil
 
 from pyspark.ml import Pipeline
+from pyspark.ml.pipeline import PipelineModel
 from pyspark.ml.classification import (LogisticRegression,
                                        OneVsRest,
-                                       RandomForestClassifier,
-                                       LogisticRegressionModel)
+                                       RandomForestClassifier)
 from pyspark.ml.evaluation import (RegressionEvaluator,
                                    MulticlassClassificationEvaluator)
 
-LR_PATH = 'server/main/spark_models/lr.model'
-BC_PATH = 'server/main/spark_models/bc.model'
-MCC_PATH = 'server/main/spark_models/mcc.model'
+LR_PATH = f'{os.environ["WEB_SPARK_MODELS_PATH"]}/lr'
+BC_PATH = f'{os.environ["WEB_SPARK_MODELS_PATH"]}/bc'
+MCC_PATH = f'{os.environ["WEB_SPARK_MODELS_PATH"]}/mcc'
 
 
-def logistic_regression(tr_data, t_data, example=None):
+def logistic_regression(tr_data=None, t_data=None,
+                        proc_type='train', example=None):
     """Performs logistic regression pipelining."""
     lr = LogisticRegression(regParam=0.001, family='multinomial')
 
     pipeline = Pipeline(stages=[lr])
 
-    model = pipeline.fit(tr_data)
-    prediction = model.transform(t_data)
+    if proc_type == 'load' or proc_type == 'test':
+        model = PipelineModel.load(LR_PATH)
+    else:
+        model = pipeline.fit(tr_data)
+        if os.path.exists(LR_PATH):
+            shutil.rmtree(LR_PATH)
+        model.save(LR_PATH)
 
-    evaluator = RegressionEvaluator(metricName="rmse", labelCol="label",
-                                    predictionCol="prediction")
-    rmse = evaluator.evaluate(prediction)
+    if proc_type == 'test':
+        result = model.transform(example).collect()
 
-    if os.path.exists(LR_PATH):
-        shutil.rmtree(LR_PATH)
-    model.save(LR_PATH)
+        return result, 0.
+    else:
+        prediction = model.transform(t_data)
+        evaluator = RegressionEvaluator(metricName="rmse", labelCol="label",
+                                        predictionCol="prediction")
+        rmse = evaluator.evaluate(prediction)
 
-    result = None if not example else model.transform(example).collect()
-
-    return result, rmse
-
-
-def get_lr_model():
-    """Loads the LogisticRegressionModel from path."""
-    return LogisticRegressionModel.load(LR_PATH)
+        return None, rmse
 
 
-def binary_classification(tr_data, t_data, example=None):
+def binary_classification(tr_data=None, t_data=None,
+                          proc_type='train', example=None):
     """Performs binary classification pipelining."""
     lr = LogisticRegression(tol=1e-6, fitIntercept=True)
     ovr = OneVsRest(classifier=lr)
 
     pipeline = Pipeline(stages=[ovr])
 
-    model = pipeline.fit(tr_data)
-    prediction = model.transform(t_data)
+    if proc_type == 'load' or proc_type == 'test':
+        model = PipelineModel.load(BC_PATH)
+    else:
+        model = pipeline.fit(tr_data)
+        if os.path.exists(BC_PATH):
+            shutil.rmtree(BC_PATH)
+        model.save(BC_PATH)
 
-    evaluator = MulticlassClassificationEvaluator(labelCol='label',
-                                                  predictionCol='prediction',
-                                                  metricName='f1')
-    f1Score = evaluator.evaluate(prediction)
+    if proc_type == 'test':
+        result = model.transform(example).collect()
 
-    if os.path.exists(BC_PATH):
-        shutil.rmtree(BC_PATH)
-    model.save(BC_PATH)
+        return result, 0.
+    else:
+        prediction = model.transform(t_data)
+        evaluator = MulticlassClassificationEvaluator(
+            labelCol='label', predictionCol='prediction',
+            metricName='f1')
+        f1Score = evaluator.evaluate(prediction)
 
-    result = None if not example else model.transform(example).collect()
-
-    return result, f1Score
+        return None, f1Score
 
 
-def multi_class_classification(tr_data, t_data, example=None):
+def multi_class_classification(tr_data=None, t_data=None,
+                               proc_type='train', example=None):
     """Performs multi-class classification pipelining."""
     rfc = RandomForestClassifier(labelCol='label', featuresCol='features',
                                  numTrees=10)
 
     pipeline = Pipeline(stages=[rfc])
 
-    model = pipeline.fit(tr_data)
-    prediction = model.transform(t_data)
+    if proc_type == 'load' or proc_type == 'test':
+        model = PipelineModel.load(MCC_PATH)
+    else:
+        model = pipeline.fit(tr_data)
+        if os.path.exists(MCC_PATH):
+            shutil.rmtree(MCC_PATH)
+        model.save(MCC_PATH)
 
-    evaluator = MulticlassClassificationEvaluator(labelCol='label',
-                                                  predictionCol='prediction',
-                                                  metricName='accuracy')
-    accuracy = evaluator.evaluate(prediction)
+    if proc_type == 'test':
+        result = model.transform(example).collect()
 
-    if os.path.exists(MCC_PATH):
-        shutil.rmtree(MCC_PATH)
-    model.save(MCC_PATH)
+        return result, 0.
+    else:
+        prediction = model.transform(t_data)
+        evaluator = MulticlassClassificationEvaluator(
+            labelCol='label', predictionCol='prediction',
+            metricName='accuracy')
+        accuracy = evaluator.evaluate(prediction)
 
-    result = None if not example else model.transform(example).collect()
-
-    return result, accuracy
+        return None, accuracy

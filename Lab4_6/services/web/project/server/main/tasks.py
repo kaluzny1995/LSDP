@@ -1,4 +1,5 @@
 """Application tasks."""
+import os
 import traceback
 import numpy as np
 try:
@@ -22,15 +23,29 @@ except Exception as e:
 from server.main.docker_logs import get_logger
 logging = get_logger('redis-flask-worker')
 
+FT_MODEL_PATH = f'{os.environ["WEB_HOME"]}/server/main/dbpedia.bin'
+SPARK_SQL_DEFAULT = 'com.mongodb.spark.sql.DefaultSource'
+SPARK_MONGODB_CONFIG = 'spark.mongodb.input.uri'
+SPARK_MONGODB_CONNECTION = f'mongodb://{os.environ["MONGODB_HOST"]}:'\
+    + f'{os.environ["MONGODB_PORT"]}/reddits.submissions'
+
+
+def check_models():
+    """Checks whether the model files are present."""
+    result = 1 if os.path.exists(f'{os.environ["WEB_SPARK_MODELS_PATH"]}/lr')\
+        else 0
+    results = {'present': result}
+
+    return results
+
 
 def load_submissions():
     """Loads Reddit submissions."""
     sc = SparkSession.builder.appName('MyModels')\
-        .config('spark.mongodb.input.uri',
-                'mongodb://mongodb:27017/reddits.submissions')\
+        .config(SPARK_MONGODB_CONFIG, SPARK_MONGODB_CONNECTION)\
         .getOrCreate()
 
-    df = sc.read.format('com.mongodb.spark.sql.DefaultSource').load()
+    df = sc.read.format(SPARK_SQL_DEFAULT).load()
     df.createOrReplaceTempView('submissions')
     df = df.select("id", "time", "author", "title")
 
@@ -45,9 +60,9 @@ def load_submissions():
     return row
 
 
-def load_dataframe(sc):
+def _load_dataframe(sc):
     """Loads the submissions from MongoDB database."""
-    df = sc.read.format('com.mongodb.spark.sql.DefaultSource').load()
+    df = sc.read.format(SPARK_SQL_DEFAULT).load()
     df.createOrReplaceTempView('submissions')
 
     query = 'select score, upvote_ratio, is_nfsw, text_embedded\
@@ -66,7 +81,7 @@ def load_dataframe(sc):
     return df
 
 
-def split(data, ratio):
+def _split(data, ratio):
     """Splits into train and test datasets by indices."""
     count, train_count, test_count =\
         data.count(), int(data.count() * ratio),\
@@ -80,39 +95,43 @@ def split(data, ratio):
     return tr_data, t_data
 
 
-def perform(tr_data, t_data, pipeline_method, key_attribute, example=None):
+def _perform(tr_data, t_data, pipeline_method, key_attribute=None,
+             proc_type='train', example=None):
     """Performs given pipelining."""
-    result, measure = pipeline_method(
-        tr_data.selectExpr('text_embedded as features',
-                           f'{key_attribute} as label'),
-        t_data.selectExpr('text_embedded as features',
-                          f'{key_attribute} as label'),
-        example=example
-    )
+    if proc_type == 'test':
+        result, measure = pipeline_method(proc_type=proc_type, example=example)
+    else:
+        result, measure = pipeline_method(
+            tr_data.selectExpr('text_embedded as features',
+                               f'{key_attribute} as label'),
+            t_data.selectExpr('text_embedded as features',
+                              f'{key_attribute} as label'),
+            proc_type=proc_type,
+            example=example
+        )
 
     return result, measure
 
 
-def train_all_models():
-    """Train all three ML models."""
+def proc_models(proc_type):
+    """Processes (loads/trains/retrains) three ML models."""
     sc = SparkSession.builder.appName('MyModels')\
-        .config('spark.mongodb.input.uri',
-                'mongodb://mongodb:27017/reddits.submissions')\
+        .config(SPARK_MONGODB_CONFIG, SPARK_MONGODB_CONNECTION)\
         .getOrCreate()
 
-    df = load_dataframe(sc)
+    df = _load_dataframe(sc)
 
-    train_data, test_data = split(df, ratio=0.8)
+    train_data, test_data = _split(df, ratio=0.8)
 
-    _, rmse = perform(train_data, test_data,
-                      pipeline_method=logistic_regression,
-                      key_attribute='score')
-    _, f1 = perform(train_data, test_data,
-                    pipeline_method=binary_classification,
-                    key_attribute='is_nfsw')
-    _, accuracy = perform(train_data, test_data,
-                          pipeline_method=multi_class_classification,
-                          key_attribute='upvote_class')
+    _, rmse = _perform(train_data, test_data,
+                       pipeline_method=logistic_regression,
+                       key_attribute='score', proc_type=proc_type)
+    _, f1 = _perform(train_data, test_data,
+                     pipeline_method=binary_classification,
+                     key_attribute='is_nfsw', proc_type=proc_type)
+    _, accuracy = _perform(train_data, test_data,
+                           pipeline_method=multi_class_classification,
+                           key_attribute='upvote_class', proc_type=proc_type)
 
     results = {'total': df.count(), 'train': train_data.count(),
                'test': test_data.count(),
@@ -128,11 +147,10 @@ def train_all_models():
     return results
 
 
-def embed(text):
+def _embed(text):
     """Embedds text."""
     tokenizer = WordPunctTokenizer()
-    model_path = 'server/main/dbpedia.bin'
-    ft_model = fasttext.load_model(model_path)
+    ft_model = fasttext.load_model(FT_MODEL_PATH)
 
     example = [ft_model[token] for token in tokenizer.tokenize(text)]
     example = np.mean(example, axis=0).tolist()
@@ -140,32 +158,26 @@ def embed(text):
     return example
 
 
-def test_all_models(text):
+def t_models(text):
     """Test all three ML models."""
-    embeddings = embed(text)
-    logging.info(f'Embeddings: {embeddings}')
+    embeddings = _embed(text)
 
     sc = SparkSession.builder.appName('MyModels')\
-        .config('spark.mongodb.input.uri',
-                'mongodb://mongodb:27017/reddits.submissions')\
+        .config(SPARK_MONGODB_CONFIG, SPARK_MONGODB_CONNECTION)\
         .getOrCreate()
-
-    df = load_dataframe(sc)
 
     emb_data = sc.createDataFrame(
         [(0., Vectors.dense(embeddings))], ['label', 'features'])
 
-    train_data, test_data = split(df, ratio=0.8)
-
-    lr_pred, rmse = perform(train_data, test_data,
-                            pipeline_method=logistic_regression,
-                            key_attribute='score', example=emb_data)
-    bc_pred, f1 = perform(train_data, test_data,
+    lr_pred, _ = _perform(None, None,
+                          pipeline_method=logistic_regression,
+                          proc_type='test', example=emb_data)
+    bc_pred, _ = _perform(None, None,
                           pipeline_method=binary_classification,
-                          key_attribute='is_nfsw', example=emb_data)
-    mcc_pred, accuracy = perform(train_data, test_data,
-                                 pipeline_method=multi_class_classification,
-                                 key_attribute='upvote_class', example=emb_data)
+                          proc_type='test', example=emb_data)
+    mcc_pred, _ = _perform(None, None,
+                           pipeline_method=multi_class_classification,
+                           proc_type='test', example=emb_data)
 
     results = {'lr_pred': lr_pred[0]["prediction"],
                'lr_m': 'Logistic Regression',

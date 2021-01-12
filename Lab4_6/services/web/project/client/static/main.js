@@ -94,81 +94,165 @@ function resultsTable(results) {
 }
 
 $(document).ready(() => {
-  ab = alertBox(`Warning! Models training in progress...`, 'warning')
-  $('#alerts').append(ab)
+  checkModelsPresence()
+});
+
+function checkModelsPresence() {
+  $('#text-input').prop('disabled', 'disabled')
+  $('#launch span').css('visibility', 'visible')
   $('#retrain span').css('visibility', 'visible')
   
-  trainModels()
-});
-
-/*$('#retrain').on('click', function() {
-  ab = alertBox(`Warning! Models training in progress...`, 'warning')
-  $('#alerts').append(ab)
-  $('span', this).css('visibility', 'visible')
-  
-  trainModels()
-});*/
-
-$('#launch').on('click', function() {
-  if ($('#text-input').val() === '') {
-    ab = alertBox('Error! Field must have a text!', 'danger')
-    $('#alerts').append(ab)
-  }
-  else {
-    testModels()
-  }
-});
-
-/*$('.b').on('click', function() {
-  console.log($(this).text());
   $.ajax({
-    url: '/tasks',
-    data: {words: $(this).text()},
-    method: 'POST'
-  })
-  .done((res) => {
-    getStatus(res.data.task_id)
-  })
-  .fail((err) => {
-    ab = alertBox(`Error! Failed to receive tasks! ${err}`, 'danger')
-    $('#alerts').append(ab)
-  })
-})*/
-
-$('#load').on('click', function() {
-  console.log($(this).text());
-  $('span', this).css('visibility', 'visible')
-  $.ajax({
-    url: '/mongo',
+    url: `/checkModelsPresence`,
     method: 'GET'
   })
   .done((res) => {
-    getMongoResults(res.data.task_id)
+    getPresenceCheck(res.data.task_id)
   })
   .fail((err) => {
-    ab = alertBox(`Error! Failed to receive submissions! ${err}`, 'danger')
+    ab = alertBox(`Error! Failed to check models presence! ${err}`, 'danger')
     $('#alerts').append(ab)
   })
-})
-
-function trainModels() {
-  $('#text-input').prop('disabled', 'disabled')
-  
+}
+function getPresenceCheck(taskID) {
   $.ajax({
-    url: `/trainAll`,
+    url: `/tasks/${taskID}`,
     method: 'GET'
   })
   .done((res) => {
-    getVerification(res.data.task_id)
+    const taskStatus = res.data.task_status;
+    const taskResults = res.data.task_result;
+    if (taskStatus === 'finished') {
+      if (taskResults.present === 0) {
+        ab = alertBox(`Models not found! Training in progress...`, 'warning')
+        $('#alerts').append(ab)
+        
+        console.log('trained models not found')
+        processModels('train')
+      }
+      else {
+        ab = alertBox(`Models loading in progress...`, 'info')
+        $('#alerts').append(ab)
+        
+        console.log('trained models found')
+        processModels('load')
+      }
+    }
+    else if (taskStatus === 'failed') {
+      ab = alertBox('Error! Failed to check models presence!', 'danger')
+      $('#alerts').append(ab)
+      return false
+    }
+    else {
+      setTimeout(function() {
+        getPresenceCheck(res.data.task_id);
+      }, 1000);
+    }
   })
   .fail((err) => {
-    ab = alertBox(`Error! Failed to train models! ${err}`, 'danger')
+    ab = alertBox(`Error! Failed to check models presence! ${err}`, 'danger')
     $('#alerts').append(ab)
   })
 }
 
+
+
+$('#retrain').on('click', function() {
+  if ($('span', this).css('visibility') !== 'visible') {
+    ab = alertBox(`Retraining in progress...`, 'info')
+    $('#alerts').append(ab)
+    
+    $('#text-input').prop('disabled', 'disabled')
+    $('#launch span').css('visibility', 'visible')
+    $('span', this).css('visibility', 'visible')
+    
+    processModels('retrain')
+  } 
+});
+
+
+
+function processModels(procType='train') {
+  console.log(`${procType}ing models`)
+  
+  $.ajax({
+    url: `/processModels/${procType}`,
+    method: 'GET'
+  })
+  .done((res) => {
+    getVerification(res.data.task_id, procType)
+  })
+  .fail((err) => {
+    ab = alertBox(`Error! Failed to ${procType} models! ${err}`, 'danger')
+    $('#alerts').append(ab)
+  })
+}
+function getVerification(taskID, procType='train') {
+  $.ajax({
+    url: `/tasks/${taskID}`,
+    method: 'GET'
+  })
+  .done((res) => {
+    const taskStatus = res.data.task_status;
+    const taskResults = res.data.task_result;
+    if (taskStatus === 'finished') {
+      console.log(`${procType}ing finished`)
+      ab = alertBox(`Success! Models ${procType}ed successfully.`, 'success')
+      $('#alerts').append(ab)
+      
+      html = infoTable(taskResults)
+      $('#data-info-table').html(html[0])
+      $('#ml-info-table').html(html[1])
+      
+      $('#text-input').removeAttr('disabled')
+      $('#launch span').css('visibility', 'hidden')
+      $('#retrain span').css('visibility', 'hidden')
+      return false
+    }
+    else if (taskStatus === 'failed') {
+      ab = alertBox(`Error! Failed to ${procType} models!`, 'danger')
+      $('#alerts').append(ab)
+      
+      $('#text-input').removeAttr('disabled')
+      $('#launch span').css('visibility', 'hidden')
+      $('#retrain span').css('visibility', 'hidden')
+      return false
+    }
+    else {
+      setTimeout(function() {
+        getVerification(res.data.task_id, procType);
+      }, 1000);
+    }
+  })
+  .fail((err) => {
+    ab = alertBox(`Error! Failed to ${procType} models! ${err}`, 'danger')
+    $('#alerts').append(ab)
+  })
+}
+
+
+
+
+$('#launch').on('click', function() {
+  if ($('span', this).css('visibility') !== 'visible') {
+    if ($('#text-input').val() === '') {
+      ab = alertBox('Error! Input must have a text!', 'danger')
+      $('#alerts').append(ab)
+      
+      return false
+    }
+    
+    ab = alertBox(`Testing in progress...`, 'info')
+    $('#alerts').append(ab)
+    
+    $('span', this).css('visibility', 'visible')
+    $('#retrain span').css('visibility', 'visible')
+    
+    testModels()
+  } 
+});
 function testModels() {
-  $('#launch span').css('visibility', 'visible')
+  console.log(`Testing models`)
   
   $.ajax({
     url: `/testModels`,
@@ -183,7 +267,6 @@ function testModels() {
     $('#alerts').append(ab)
   })
 }
-
 function getResults(taskID) {
   $.ajax({
     url: `/tasks/${taskID}`,
@@ -195,16 +278,21 @@ function getResults(taskID) {
     if (taskStatus === 'finished') {
       ab = alertBox('Success! Tests done', 'success')
       $('#alerts').append(ab)
+      
       html = resultsTable(taskResults)
       $('#results-table').html(html)
       $('#results-table').prepend(`<span><b>Text</b>:&nbsp;${$('#text-input').val()}</span><br /><br />`)
+      
       $('#launch span').css('visibility', 'hidden')
+      $('#retrain span').css('visibility', 'hidden')
       return false
     }
     else if (taskStatus === 'failed') {
-      ab = alertBox('Error! Failed to test models!', 'danger')
+      ab = alertBox('Error! Failed to get model testing results!', 'danger')
       $('#alerts').append(ab)
+      
       $('#launch span').css('visibility', 'hidden')
+      $('#retrain span').css('visibility', 'hidden')
       return false
     }
     else {
@@ -219,68 +307,23 @@ function getResults(taskID) {
   })
 }
 
-function getVerification(taskID) {
+
+
+$('#load').on('click', function() {
+  console.log($(this).text().toLowerCase());
+  $('span', this).css('visibility', 'visible')
   $.ajax({
-    url: `/tasks/${taskID}`,
+    url: '/mongo',
     method: 'GET'
   })
   .done((res) => {
-    const taskStatus = res.data.task_status;
-    const taskResults = res.data.task_result;
-    if (taskStatus === 'finished') {
-      ab = alertBox(`Success! Models trained successfully.`, 'success')
-      $('#alerts').append(ab)
-      html = infoTable(taskResults)
-      $('#data-info-table').html(html[0])
-      $('#ml-info-table').html(html[1])
-      $('#text-input').removeAttr('disabled')
-      $('#retrain span').css('visibility', 'hidden')
-      return false
-    }
-    else if (taskStatus === 'failed') {
-      ab = alertBox('Error! Failed to load train all models!', 'danger')
-      $('#alerts').append(ab)
-      $('#text-input').removeAttr('disabled')
-      $('#retrain span').css('visibility', 'hidden')
-      return false
-    }
-    else {
-      setTimeout(function() {
-        getVerification(res.data.task_id);
-      }, 1000);
-    }
+    getMongoResults(res.data.task_id)
   })
   .fail((err) => {
-    ab = alertBox(`Error! Failed to load models! ${err}`, 'danger')
+    ab = alertBox(`Error! Failed to receive submissions! ${err}`, 'danger')
     $('#alerts').append(ab)
   })
-}
-
-/*function getStatus(taskID) {
-  $.ajax({
-    url: `/tasks/${taskID}`,
-    method: 'GET'
-  })
-  .done((res) => {
-    const html = `
-      <tr>
-        <td>${res.data.task_id}</td>
-        <td>${res.data.task_status}</td>
-        <td>${JSON.stringify(res.data.task_result)}</td>
-      </tr>`
-    $('#tasks').prepend(html)
-    const taskStatus = res.data.task_status;
-    if (taskStatus === 'finished' || taskStatus === 'failed') return false;
-    setTimeout(function() {
-      getStatus(res.data.task_id);
-    }, 1000);
-  })
-  .fail((err) => {
-    ab = alertBox(`Error! Failed to get task status! ${err}`, 'danger')
-    $('#alerts').append(ab)
-  })
-}*/
-
+})
 function getMongoResults(taskID) {
   $.ajax({
     url: `/tasks/${taskID}`,
@@ -322,5 +365,4 @@ function getMongoResults(taskID) {
     $('#alerts').append(ab)
   })
 }
-
 

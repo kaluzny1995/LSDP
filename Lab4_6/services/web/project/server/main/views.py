@@ -4,8 +4,8 @@ from rq import Queue, push_connection, pop_connection
 from flask import current_app, render_template, Blueprint, jsonify, request
 
 from server.main.tasks import (
-    load_submissions,
-    train_all_models, test_all_models
+    check_models, load_submissions,
+    proc_models, t_models
 )
 
 main_blueprint = Blueprint('main', __name__,)
@@ -17,11 +17,25 @@ def home():
     return render_template('main/home.html')
 
 
-@main_blueprint.route('/trainAll', methods=['GET'])
-def train_all():
-    """Train all - view."""
+@main_blueprint.route('/checkModelsPresence', methods=['GET'])
+def check_models_presence():
+    """Check models presence - view."""
     q = Queue()
-    task = q.enqueue(train_all_models)
+    task = q.enqueue(check_models)
+    response_object = {
+        'status': 'success',
+        'data': {
+            'task_id': task.get_id()
+        }
+    }
+    return jsonify(response_object), 202
+
+
+@main_blueprint.route('/processModels/<proc_type>', methods=['GET'])
+def process_models(proc_type):
+    """Process models - view."""
+    q = Queue()
+    task = q.enqueue(proc_models, proc_type)
     response_object = {
         'status': 'success',
         'data': {
@@ -50,7 +64,7 @@ def test_models():
     """Test models - view."""
     text = request.form['text']
     q = Queue()
-    task = q.enqueue(test_all_models, text)
+    task = q.enqueue(t_models, text)
     response_object = {
         'status': 'success',
         'data': {
