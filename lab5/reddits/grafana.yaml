@@ -4,67 +4,71 @@ kind: Service
 metadata:
   name: grafana-svc
   labels:
-    app: grafana
+    app: reddits
 spec:
-  selector:
-    app: grafana
   type: NodePort
   ports:
-  - port: 3000
-    targetPort: 3000
-    name: http
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: reddits
 ---
 kind: PersistentVolume
 apiVersion: v1
 metadata:
- name: grafana-pv
- labels:
-  type: local
+  name: grafana-pv
+  labels:
+    type: local
 spec:
- storageClassName: manual
- capacity:
-  storage: 1Gi
- accessModes:
-  - ReadWriteOnce
- hostPath:
-  path: "/db/grafana"
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/db/grafana"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
- name: grafana-pvc
+  name: grafana-pvc
 spec:
- storageClassName: manual
- accessModes:
-  - ReadWriteOnce
- resources:
-  requests:
-   storage: 1Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana-deploy
+  labels:
+    app: reddits
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: reddits
-  replicas: 1
   template:
     metadata:
       labels:
         app: reddits
     spec:
       volumes:
-       - name: grafana-pv
-         persistentVolumeClaim:
-           claimName: grafana-pvc
+        - name: grafana-pv
+          persistentVolumeClaim:
+            claimName: grafana-pvc
       containers:
        - name: grafana
          image: grafana/grafana:5.0.0
          ports:
-          - containerPort: 3000
-            name: http
+           - name: http
+             containerPort: 3000
+             protocol: TCP
          volumeMounts:
           - name: grafana-pv
             mountPath: /var/lib/grafana

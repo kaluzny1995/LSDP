@@ -6,65 +6,70 @@ metadata:
   labels:
     app: reddits
 spec:
+  ports:
+    - port: 8086
+      targetPort: 8086
+      protocol: TCP
+      name: http
+  clusterIP: None
   selector:
     app: reddits
-  clusterIP: None
-  ports:
-  - port: 8086
-    targetPort: 8086
-    name: influxdb
 ---
 kind: PersistentVolume
 apiVersion: v1
 metadata:
- name: influxdb-pv
- labels:
-  type: local
+  name: influxdb-pv
+  labels:
+    type: local
 spec:
- storageClassName: manual
- capacity:
-  storage: 1Gi
- accessModes:
-  - ReadWriteOnce
- hostPath:
-  path: "/mnt/influx_data"
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/influx_data"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
- name: influxdb-pvc
+  name: influxdb-pvc
 spec:
- storageClassName: manual
- accessModes:
-  - ReadWriteOnce
- resources:
-  requests:
-   storage: 1Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: influxdb-sts
+  labels:
+    app: reddits
 spec:
+  replicas: 1
   serviceName: "influxdb-svc"
   selector:
     matchLabels:
       app: reddits
-  replicas: 1
   template:
     metadata:
       labels:
         app: reddits
     spec:
       volumes:
-       - name: influxdb-pv
-         persistentVolumeClaim:
-           claimName: influxdb-pvc
+        - name: influxdb-pv
+          persistentVolumeClaim:
+            claimName: influxdb-pvc
       containers:
-       - name: influxdb
-         image: influxdb:1.8
-         ports:
-          - containerPort: 8086
-         volumeMounts:
-          - name: influxdb-pv
-            mountPath: /var/lib/influxdb
+        - name: influxdb
+          image: influxdb:1.8
+          ports:
+            - name: http
+              containerPort: 8086
+              protocol: TCP
+          volumeMounts:
+            - name: influxdb-pv
+              mountPath: /var/lib/influxdb

@@ -7,10 +7,11 @@ metadata:
     app: reddits
 spec:
   ports:
-  - protocol: TCP
-    port: 5672
-    targetPort: 5672
-    name: rabbitmq
+    - port: 5672
+      targetPort: 5672
+      protocol: TCP
+      name: http
+  clusterIP: None
   selector:
     app: reddits
 ---
@@ -18,19 +19,23 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: rabbitmq-sts
+  labels:
+    app: reddits
 spec:
+  replicas: 1
   serviceName: "rabbitmq-svc"
   selector:
     matchLabels:
       app: reddits
-  replicas: 1
   template:
     metadata:
       labels:
         app: reddits
     spec:
       containers:
-       - name: rabbitmq
-         image: rabbitmq:3.8
-         ports:
-          - containerPort: 5672
+        - name: rabbitmq
+          image: rabbitmq:3.8
+          ports:
+            - name: http
+              containerPort: 5672
+              protocol: TCP

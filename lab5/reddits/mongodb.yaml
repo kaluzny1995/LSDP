@@ -6,73 +6,74 @@ metadata:
   labels:
     app: reddits
 spec:
+  ports:
+    - port: 27017
+      targetPort: 27017
+      protocol: TCP
+      name: http
+  clusterIP: None
   selector:
     app: reddits
-    role: mongo
-  clusterIP: None
-  ports:
-  - port: 27017
-    targetPort: 27017
-    name: mongodb
 ---
 kind: PersistentVolume
 apiVersion: v1
 metadata:
- name: mongodb-pv
- labels:
-  type: local
+  name: mongodb-pv
+  labels:
+    type: local
 spec:
- storageClassName: manual
- capacity:
-  storage: 1Gi
- accessModes:
-  - ReadWriteOnce
- hostPath:
-  path: "/mnt/mongo_data"
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/mongo_data"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
- name: mongodb-pvc
+  name: mongodb-pvc
 spec:
- storageClassName: manual
- accessModes:
-  - ReadWriteOnce
- resources:
-  requests:
-   storage: 1Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongodb-sts
+  labels:
+    app: reddits
 spec:
+  replicas: 1
   serviceName: "mongodb-svc"
   selector:
     matchLabels:
       app: reddits
-  replicas: 1
   template:
     metadata:
       labels:
         app: reddits
-        role: mongo
-        environment: test
     spec:
-      terminationGracePeriodSeconds: 10
       volumes:
-       - name: mongodb-pv
-         persistentVolumeClaim:
-           claimName: mongodb-pvc
+        - name: mongodb-pv
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
       containers:
-       - name: mongodb
-         image: mongo:4.4
-         command:
-          - mongod
-          - "--bind_ip"
-          - 0.0.0.0
-         ports:
-          - containerPort: 27017
-         volumeMounts:
-          - name: mongodb-pv
-            mountPath: /data/db
+        - name: mongodb
+          image: mongo:4.4
+          command:
+            - mongod
+            - "--bind_ip"
+            - 0.0.0.0
+          ports:
+            - name: http
+              containerPort: 27017
+              protocol: TCP
+          volumeMounts:
+            - name: mongodb-pv
+              mountPath: /data/db

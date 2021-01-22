@@ -4,11 +4,11 @@ kind: ConfigMap
 metadata:
   name: redash-cm
   labels:
-    app: redash
+    app: reddits
 data:
   PYTHONUNBUFFERED: "0"
   REDASH_LOG_LEVEL: "INFO"
-  REDASH_REDIS_URL: "redis://redis:6379/0"
+  REDASH_REDIS_URL: "redis://redis:6380/0"
   REDASH_DATABASE_URL: "postgresql://postgres:postgres@postgres/postgres"
   QUEUES: "queries,scheduled_queries,celery,schemas"
   WORKERS_COUNT: "4"
@@ -17,29 +17,31 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redash-deploy
+  labels:
+    app: reddits
 spec:
+  replicas: 1
   selector:
     matchLabels:
-      app: redash
-  replicas: 1
+      app: reddits
   template:
     metadata:
       labels:
-        app: redash
+        app: reddits
     spec:
       containers:
         - name: redash
-          image: redash/redash
+          image: redash/redash:8.0.0.b32245
           args: ['server']
           ports:
-            - name: redash
+            - name: http
               containerPort: 5000
           envFrom:
             - configMapRef:
                 name: redash-cm
 
         - name: redash-worker
-          image: redash/redash
+          image: redash/redash:8.0.0.b32245
           args: ['worker']
           envFrom:
             - configMapRef:
@@ -47,24 +49,30 @@ spec:
 
         - name: redis
           image: redis:3.0-alpine
+          command: ['redis-server', '--port', '6380']
           ports:
-          - name: redis
-            containerPort: 6379
+            - name: redis
+              containerPort: 6380
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: redash-job
+  labels:
+    app: reddits
 spec:
   template:
+    metadata:
+      labels:
+        app: reddits
     spec:
       containers:
-      - name: redash-db-init
-        image: redash/redash
-        args: ['create_db']
-        envFrom:
-          - configMapRef:
-              name: redash-cm
+        - name: redash-db-init
+          image: redash/redash:8.0.0.b32245
+          args: ['create_db']
+          envFrom:
+            - configMapRef:
+                name: redash-cm
       restartPolicy: OnFailure
 ---
 apiVersion: v1
@@ -72,112 +80,115 @@ kind: Service
 metadata:
   name: redash-svc
   labels:
-    app: redash
+    app: reddits
 spec:
   type: NodePort
-  selector:
-    app: redash
   ports:
-  - port: 5000
-    targetPort: 5000
-    nodePort: 30570
-    name: http
+    - port: 5000
+      targetPort: 5000
+      name: http
+  selector:
+    app: reddits
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: redis
   labels:
-    app: redash
+    app: reddits
 spec:
-  selector:
-    app: redash
-  clusterIP: None
   ports:
-  - port: 6379
-    targetPort: 6379
-    name: redis
+    - port: 6380
+      targetPort: 6380
+      name: redis
+  clusterIP: None
+  selector:
+    app: reddits
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgres-cm
   labels:
-    app: postgres
+    app: reddits
 data:
   POSTGRES_USER: "postgres"
   POSTGRES_PASSWORD: "postgres"
   POSTGRES_DB: "postgres"
+  PGDATA: "/var/lib/postgresql/data/db-files/"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: postgres
   labels:
-    app: postgres
+    app: reddits
 spec:
   ports:
-  - port: 5432
-    name: postgres
+    - port: 5432
+      targetPort: 5432
+      name: postgres
   clusterIP: None
   selector:
-    app: postgres
+    app: reddits
 ---
 kind: PersistentVolume
 apiVersion: v1
 metadata:
- name: postgres-pv
- labels:
-  type: local
+  name: postgres-pv
+  labels:
+    type: local
 spec:
- storageClassName: manual
- capacity:
-  storage: 1Gi
- accessModes:
-  - ReadWriteOnce
- hostPath:
-  path: "/mnt/postgres_data"
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/postgres_data"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
- name: postgres-pvc
+  name: postgres-pvc
 spec:
- storageClassName: manual
- accessModes:
-  - ReadWriteOnce
- resources:
-  requests:
-   storage: 1Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-sts
+  labels:
+    app: reddits
 spec:
-  serviceName: "postgres"
   replicas: 1
+  serviceName: "postgres"
   selector:
     matchLabels:
-      app: postgres
+      app: reddits
   template:
     metadata:
       labels:
-        app: postgres
+        app: reddits
     spec:
       volumes:
-      - name: postgres-pv
-        persistentVolumeClaim:
-          claimName: postgres-pvc
-      containers:
-      - name: postgres
-        image: postgres:9.5-alpine
-        envFrom:
-          - configMapRef:
-              name: postgres-cm
-        ports:
-        - containerPort: 5432
-          name: postgresdb
-        volumeMounts:
         - name: postgres-pv
-          mountPath: /var/lib/postgresql/data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+      containers:
+        - name: postgres
+          image: postgres:9.5-alpine
+          envFrom:
+            - configMapRef:
+                name: postgres-cm
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: postgres-pv
+              mountPath: /var/lib/postgresql/data
