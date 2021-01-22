@@ -28,9 +28,8 @@ spec:
         - name: {{ .Values.influxDB.statefulset.container.name }}
           image: {{ .Values.influxDB.statefulset.container.image }}
           ports:
-            - name: http
-              containerPort: {{ .Values.influxDB.statefulset.container.port }}
-              protocol: TCP
+            - name: {{ .Values.influxDB.service.portName }}
+              containerPort: {{ .Values.influxDB.service.port }}
           volumeMounts:
             - name: {{ .Values.influxDB.persistentVolume.name }}
               mountPath: /var/lib/influxdb

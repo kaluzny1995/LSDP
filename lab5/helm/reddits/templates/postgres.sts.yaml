@@ -31,8 +31,8 @@ spec:
             - configMapRef:
                 name: {{ .Values.postgres.configMap.name }}
           ports:
-            - name: postgresdb
-              containerPort: {{ .Values.postgres.statefulset.container.port }}
+            - name: {{ .Values.postgres.service.portName }}
+              containerPort: {{ .Values.postgres.service.port }}
           volumeMounts:
             - name: {{ .Values.postgres.persistentVolume.name }}
               mountPath: /var/lib/postgresql/data

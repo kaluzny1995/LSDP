@@ -20,25 +20,26 @@ spec:
         {{- include "reddits.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: {{ .Values.redash.deployment.container.nameRedash }}
-          image: {{ .Values.redash.deployment.container.imageRedash }}
+        - name: {{ .Values.redash.deployment.container.redash.name }}
+          image: {{ .Values.redash.deployment.container.redash.image }}
           args: ['server']
           ports:
-            - name: redash
-              containerPort: {{ .Values.redash.deployment.container.portRedash }}
+            - name: {{ .Values.redash.service.portName }}
+              containerPort: {{ .Values.redash.service.port }}
           envFrom:
             - configMapRef:
                 name: {{ .Values.redash.configMap.name }}
 
-        - name: {{ .Values.redash.deployment.container.nameRedash }}-worker
-          image: {{ .Values.redash.deployment.container.imageRedash }}
+        - name: {{ .Values.redash.deployment.container.redash.name }}-worker
+          image: {{ .Values.redash.deployment.container.redash.image }}
           args: ['worker']
           envFrom:
             - configMapRef:
                 name: {{ .Values.redash.configMap.name }}
 
-        - name: {{ .Values.redash.deployment.container.nameRedis }}
-          image: {{ .Values.redash.deployment.container.imageRedis }}
+        - name: {{ .Values.redash.deployment.container.redis.name }}
+          image: {{ .Values.redash.deployment.container.redis.image }}
+          command: ['redis-server', '--port', '{{ .Values.redis.service.port }}']
           ports:
-            - name: redis
-              containerPort: {{ .Values.redash.deployment.container.portRedis }}
+            - name: {{ .Values.redis.service.portName }}
+              containerPort: {{ .Values.redis.service.port }}

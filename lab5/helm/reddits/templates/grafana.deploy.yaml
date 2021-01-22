@@ -27,9 +27,8 @@ spec:
        - name: {{ .Values.grafana.deployment.container.name }}
          image: {{ .Values.grafana.deployment.container.image }}
          ports:
-           - name: http
-             containerPort: {{ .Values.grafana.deployment.container.port }}
-             protocol: TCP
+           - name: {{ .Values.grafana.service.portName }}
+             containerPort: {{ .Values.grafana.service.port }}
          volumeMounts:
           - name: {{ .Values.grafana.persistentVolume.name }}
             mountPath: /var/lib/grafana

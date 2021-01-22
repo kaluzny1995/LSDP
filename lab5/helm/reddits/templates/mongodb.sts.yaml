@@ -20,7 +20,6 @@ spec:
       labels:
         {{- include "reddits.selectorLabels" . | nindent 8 }}
     spec:
-      terminationGracePeriodSeconds: 10
       volumes:
         - name: {{ .Values.mongoDB.persistentVolume.name }}
           persistentVolumeClaim:
@@ -33,9 +32,8 @@ spec:
             - "--bind_ip"
             - 0.0.0.0
           ports:
-            - name: http
-              containerPort: {{ .Values.mongoDB.statefulset.container.port }}
-              protocol: TCP
+            - name: {{ .Values.mongoDB.service.portName }}
+              containerPort: {{ .Values.mongoDB.service.port }}
           volumeMounts:
             - name: {{ .Values.mongoDB.persistentVolume.name }}
               mountPath: /data/db

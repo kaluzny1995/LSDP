@@ -9,6 +9,7 @@ spec:
   ports:
     - port: {{ .Values.redis.service.port }}
       targetPort: {{ .Values.redis.service.port }}
-      name: redis
+      name: {{ .Values.redis.service.portName }}
+  clusterIP: None
   selector:
     {{- include "reddits.selectorLabels" . | nindent 4 }}

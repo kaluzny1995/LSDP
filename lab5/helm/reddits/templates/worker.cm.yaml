@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.worker.configMap.name }}
+  labels:
+    {{- include "reddits.labels" . | nindent 4 }}
+data:
+  CELERY_BROKER_URL: "amqp://guest:guest@{{ .Values.rabbitMQ.service.name }}:{{ .Values.rabbitMQ.service.port }}"
+  CELERY_RESULT_BACKEND: "rpc"
+  CELERYBEAT_MINUTES_INTERVAL: "{{ .Values.worker.deployment.scheduleMins }}"
+  INFLUXDB_HOST: "{{ .Values.influxDB.service.name }}"
+  INFLUXDB_PORT: "{{ .Values.influxDB.service.port }}"
+  MONGODB_HOST: "{{ .Values.mongoDB.service.name }}"
+  MONGODB_PORT: "{{ .Values.mongoDB.service.port }}"

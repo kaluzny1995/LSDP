@@ -9,8 +9,7 @@ spec:
   type: NodePort
   ports:
     - port: {{ .Values.grafana.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+      targetPort: {{ .Values.grafana.service.port }}
+      name: {{ .Values.grafana.service.portName }}
   selector:
     {{- include "reddits.selectorLabels" . | nindent 4 }}

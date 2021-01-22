@@ -3,17 +3,19 @@ rabbitMQ:
   service:
     name: rabbitmq-svc
     port: 5672
+    portName: http
   statefulset:
     name: rabbitmq-sts
     replicaCount: 1
     container:
       name: rabbitmq
       image: rabbitmq:3.8
-      port: 5672
   
 
 # Worker
 worker:
+  configMap:
+    name: worker-cm
   deployment:
     name: worker-deploy
     replicaCount: 1
@@ -32,6 +34,7 @@ influxDB:
   service:
     name: influxdb-svc
     port: 8086
+    portName: http
   persistentVolume:
     name: influxdb-pv
   persistentVolumeClaim:
@@ -42,7 +45,6 @@ influxDB:
     container:
       name: influxdb
       image: influxdb:1.8
-      port: 8086
 
 
 # MongoDB
@@ -50,6 +52,7 @@ mongoDB:
   service:
     name: mongodb-svc
     port: 27017
+    portName: http
   persistentVolume:
     name: mongodb-pv
   persistentVolumeClaim:
@@ -60,7 +63,6 @@ mongoDB:
     container:
       name: mongodb
       image: mongo:4.4
-      port: 27017
 
 
 # Grafana
@@ -68,6 +70,7 @@ grafana:
   service:
     name: grafana-svc
     port: 3000
+    portName: http
   persistentVolume:
     name: grafana-pv
   persistentVolumeClaim:
@@ -78,43 +81,47 @@ grafana:
     container:
       name: grafana
       image: grafana/grafana:5.0.0
-      port: 3000
 
 
 # Redash
 redash:
   configMap:
     name: redash-cm
+    nWorkers: 4
   deployment:
     name: redash-deploy
     replicaCount: 1
     container:
-      nameRedash: redash
-      imageRedash: redash/redash
-      portRedash: 5000
-      nameRedis: redis
-      imageRedis: redis:3.0-alpine
-      portRedis: 6379
+      redash:
+        name: redash
+        image: redash/redash:8.0.0.b32245
+      redis:
+        name: redis
+        image: redis:3.0-alpine
   job:
     name: redash-job
-    container:
-      name: redash-db-init
-      image: redash/redash
   service:
     name: redash-svc
     port: 5000
+    portName: http
 
 redis:
   service:
     name: redis
-    port: 6379
+    port: 6380
+    portName: redis
 
 postgres:
   configMap:
     name: postgres-cm
+    user: postgres
+    password: postgres
+    dbName: postgres
+    dataPath: /var/lib/postgresql/data/db-files/
   service:
     name: postgres
     port: 5432
+    portName: postgres
   persistentVolume:
     name: postgres-pv
   persistentVolumeClaim:
@@ -125,7 +132,6 @@ postgres:
     container:
       name: postgres
       image: postgres:9.5-alpine
-      port: 5432
 
 
 

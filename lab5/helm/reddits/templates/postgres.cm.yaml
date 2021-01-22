@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "reddits.labels" . | nindent 4 }}
 data:
-  POSTGRES_USER: "postgres"
-  POSTGRES_PASSWORD: "postgres"
-  POSTGRES_DB: "postgres"
+  POSTGRES_USER: "{{ .Values.postgres.configMap.user }}"
+  POSTGRES_PASSWORD: "{{ .Values.postgres.configMap.password }}"
+  POSTGRES_DB: "{{ .Values.postgres.configMap.dbName }}"
+  PGDATA: "{{ .Values.postgres.configMap.dataPath }}"

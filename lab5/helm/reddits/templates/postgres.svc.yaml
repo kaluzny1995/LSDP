@@ -8,7 +8,8 @@ metadata:
 spec:
   ports:
     - port: {{ .Values.postgres.service.port }}
-      name: postgres
+      targetPort: {{ .Values.postgres.service.port }}
+      name: {{ .Values.postgres.service.portName }}
   clusterIP: None
   selector:
     {{- include "reddits.selectorLabels" . | nindent 4 }}

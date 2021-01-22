@@ -6,11 +6,10 @@ metadata:
   labels:
     {{- include "reddits.labels" . | nindent 4 }}
 spec:
-  type: ClusterIP
   ports:
     - port: {{ .Values.mongoDB.service.port }}
-      targetPort: http
-      protocol: TCP
-      name: http
+      targetPort: {{ .Values.mongoDB.service.port }}
+      name: {{ .Values.mongoDB.service.portName }}
+  clusterIP: None
   selector:
     {{- include "reddits.selectorLabels" . | nindent 4 }}

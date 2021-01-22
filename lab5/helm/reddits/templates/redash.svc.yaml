@@ -10,6 +10,6 @@ spec:
   ports:
     - port: {{ .Values.redash.service.port }}
       targetPort: {{ .Values.redash.service.port }}
-      name: http
+      name: {{ .Values.redash.service.portName }}
   selector:
     {{- include "reddits.selectorLabels" . | nindent 4 }}

@@ -8,7 +8,7 @@ metadata:
 data:
   PYTHONUNBUFFERED: "0"
   REDASH_LOG_LEVEL: "INFO"
-  REDASH_REDIS_URL: "redis://redis:6379/0"
-  REDASH_DATABASE_URL: "postgresql://postgres:postgres@postgres/postgres"
+  REDASH_REDIS_URL: "redis://{{ .Values.redis.service.name }}:{{ .Values.redis.service.port }}/0"
+  REDASH_DATABASE_URL: "postgresql://{{ .Values.postgres.configMap.user }}:{{ .Values.postgres.configMap.password }}@{{ .Values.postgres.service.name }}/{{ .Values.postgres.service.dbName }}"
   QUEUES: "queries,scheduled_queries,celery,schemas"
-  WORKERS_COUNT: "4"
+  WORKERS_COUNT: "{{ .Values.redash.configMap.name }}"

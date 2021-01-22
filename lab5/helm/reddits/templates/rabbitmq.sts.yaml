@@ -11,7 +11,6 @@ spec:
   selector:
     matchLabels:
       {{- include "reddits.selectorLabels" . | nindent 6 }}
-      app: reddits
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -20,12 +19,10 @@ spec:
       {{- end }}
       labels:
         {{- include "reddits.selectorLabels" . | nindent 8 }}
-        app: reddits
     spec:
       containers:
         - name: {{ .Values.rabbitMQ.statefulset.container.name }}
           image: {{ .Values.rabbitMQ.statefulset.container.image }}
           ports:
-            - name: http
-              containerPort: {{ .Values.rabbitMQ.statefulset.container.port }}
-              protocol: TCP
+            - name: {{ .Values.rabbitMQ.service.portName }}
+              containerPort: {{ .Values.rabbitMQ.service.port }}

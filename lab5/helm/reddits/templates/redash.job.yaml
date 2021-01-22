@@ -16,8 +16,8 @@ spec:
         {{- include "reddits.selectorLabels" . | nindent 8 }}
     spec:
       containers:
-        - name: {{ .Values.redash.job.container.name }}
-          image: {{ .Values.redash.job.container.image }}
+        - name: {{ .Values.redash.deployment.container.redash.name }}-db-init
+          image: {{ .Values.redash.deployment.container.redash.image }}
           args: ['create_db']
           envFrom:
             - configMapRef:
