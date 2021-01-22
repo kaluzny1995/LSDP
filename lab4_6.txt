@@ -1,3 +1,5 @@
+List04_06:::
+
 [pyspark, <, sample.py]
 [pyspark, --packages, org.apache.spark.sql, <, sample.py]
 
@@ -20,29 +22,6 @@ sudo zip -r lsdp_4_5.zip project_1
 11) Master: SparkContext; Worker: Pipelines
 
 
+Same container for Spark and Flask. --> webspark
 
-Kubernetes:
 
-Kubernetes Pod may run many containers.
-
-Deployment: deploying or rolling back deployment (file of deployment)
-Service: pod or many pods (many replicas)
-DeamonSet: ensurement about some nodes run a copy of a Pod; 
-StatefulSet: workload API used to manage stateful applications; guarentees about ordering and uniqueness of Pods (set of pods)
-[StatefulSet --> stateful; DeamonSet --> unstateful]
-Configmap: assignment of configuration to pods
-Secret: security of sensitive files i.e. passwords
-Persistent volume (claim): user's storage request; specific size, volume mode, access mode, resources 
-
-Creation order: service --> configmap --> deployment
-Deployment always create at the end. Deployment creates pod.
-Service --> pod backend
-Configmap --> pod frontend
-
-kubectl create -f deployment.yaml --> create deployment
-kubectl apply -f deployment.yaml --> update (use) deployment
-kubectl delete -f deployment.yaml --> delete deployment
-
-Debugging:
-kubectl logs --previous sample-pod
-kubectl describe pod sample-pod

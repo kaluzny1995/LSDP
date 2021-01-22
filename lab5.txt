@@ -12,6 +12,24 @@ You have to provide your own AWS access credentials.
 
 
 KUBERNETES:
+
+1) Docker container run exactly one service but Kubernetes Pod may run many Docker containers (i.e. provide many services).
+2) Deployment - stateless deployment of a container or many containers
+3) Service - tool for exposing containers on given port
+4) Daemonset - tool for ensuring that a node (or many) runs copy of a Pod (ex. monitoring Pod status, logging)
+	-vs. deployment - daemonset does not run more that one replica per node but deployment does
+5) Statefulset - stateful deployment of a container or many conatainers
+	-vs. deployment - deployment is stateless, does not have its own storage (must be defined pvc to persist data), but statefulset is stateful and has its own storage
+	-vs. daemonset - daemonset runs in background and statelessly, but statefulset not
+6) Configmap - tool for handling settings for a container (by environment variables or files with certain content)
+7) Secret - tool for encrypting secrets or logging credentials (by environment variables)
+8) PersistentVolume - volume of persistent storage
+9) PersistentVolumeClaim - tool for PersistentVolume access rules (claim) management
+
+kubectl apply -f file.yaml --> deploys above objects
+kebectl delete .... --> deletes them
+
+
 RabbitMQ:
 
 kubectl apply -f rabbitmq.yaml
@@ -58,6 +76,13 @@ Grafana InfluxDB connnection:
    URL: http://influxdb-svc:8086
    Type: proxy
    Database: celery
+   
+Grafana dashboard:
+Panel Title: Reddits count
+Data Source: myinfluxdb
+	FROM celery tasks
+	SELECT field(id) count()
+	GROUP BY time(1m) fill(0)
 
 
 Redash:
@@ -71,7 +96,7 @@ kubectl port-forward redash-deploy-7f8ddd9dc7-kgj9k 5000:5000
 # Warning! You have to give a right pod name. In this case: redash-deploy-7f8ddd9dc7-kgj9k
 
 Launch Redash: http://127.0.0.1:5000/
-First logging credentials: [Login: admin; E-mail: admin@admin.com, Password: admin1]
+First logging credentials: [Name: admin; E-mail: admin@admin.com, Password: admin1, Organization Name: PWr]
 
 Redash MongoDB connnection:
    Name: mymongodb
@@ -88,5 +113,10 @@ Simple counting redash query:
 Info: In order not to deploy Kubernetes components file after file type in 'bash deploy.sh'. To delete all components type 'bash undeploy.sh'.
 
 HELM:
+Install chart: helm install reddits reddits
+Update chart changes: helm upgrade reddits reddits
+Rollback chart changes: helm rollback reddits reddits
+Uninstall chart: helm uninstall reddits
+
 Show rendered templates: helm install reddits reddits --dry-run --debug
 

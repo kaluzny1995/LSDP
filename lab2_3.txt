@@ -1,4 +1,4 @@
-List02:::
+List02_03:::
 
 Reddit:
 api key: ****************
@@ -42,4 +42,6 @@ Simple counting redash query:
 
 
 
+Stop/remove containers: docker-compose down
 Remove all Docker images: docker rmi -f $(docker images -a -q)
+Remove all Docker volumes: docker volume rm $(docker volume ls -q)
