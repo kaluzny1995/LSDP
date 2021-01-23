@@ -1,0 +1,16 @@
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: web-ing
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: "flask.app"
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: web-svc
+          servicePort: 7000

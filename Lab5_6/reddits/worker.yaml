@@ -1,0 +1,55 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-cm
+  labels:
+    app: reddits
+data:
+  CELERY_BROKER_URL: "amqp://guest:guest@rabbitmq-svc:5672"
+  CELERY_RESULT_BACKEND: "rpc"
+  CELERYBEAT_MINUTES_INTERVAL: "5"
+  INFLUXDB_HOST: "influxdb-svc"
+  INFLUXDB_PORT: "8086"
+  MONGODB_HOST: "mongodb-svc"
+  MONGODB_PORT: "27017"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deploy
+  labels:
+    app: reddits
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reddits
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      containers:
+      - name: worker
+        image: kaluzny1995/worker:latest
+        imagePullPolicy: Always
+        envFrom:
+          - configMapRef:
+              name: worker-cm
+        command: ['celery', 'worker', '--app=worker.app', '--beat']
+        livenessProbe:
+          exec:
+            command:
+              - echo
+              - "Liveness check OK."
+          initialDelaySeconds: 45
+          periodSeconds: 20
+
+        readinessProbe:
+          exec:
+            command:
+              - echo
+              - "Readiness check OK."
+          initialDelaySeconds: 20
+          periodSeconds: 10

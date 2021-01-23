@@ -1,0 +1,194 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redash-cm
+  labels:
+    app: reddits
+data:
+  PYTHONUNBUFFERED: "0"
+  REDASH_LOG_LEVEL: "INFO"
+  REDASH_REDIS_URL: "redis://redis:6380/0"
+  REDASH_DATABASE_URL: "postgresql://postgres:postgres@postgres/postgres"
+  QUEUES: "queries,scheduled_queries,celery,schemas"
+  WORKERS_COUNT: "4"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redash-deploy
+  labels:
+    app: reddits
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reddits
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      containers:
+        - name: redash
+          image: redash/redash:8.0.0.b32245
+          args: ['server']
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: redash-cm
+
+        - name: redash-worker
+          image: redash/redash:8.0.0.b32245
+          args: ['worker']
+          envFrom:
+            - configMapRef:
+                name: redash-cm
+
+        - name: redis
+          image: redis:3.0-alpine
+          command: ['redis-server', '--port', '6380']
+          ports:
+            - name: redis
+              containerPort: 6380
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: redash-job
+  labels:
+    app: reddits
+spec:
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      containers:
+        - name: redash-db-init
+          image: redash/redash:8.0.0.b32245
+          args: ['create_db']
+          envFrom:
+            - configMapRef:
+                name: redash-cm
+      restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redash-svc
+  labels:
+    app: reddits
+spec:
+  type: NodePort
+  ports:
+    - port: 5000
+      targetPort: 5000
+      name: http
+  selector:
+    app: reddits
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: reddits
+spec:
+  ports:
+    - port: 6380
+      targetPort: 6380
+      name: redis
+  clusterIP: None
+  selector:
+    app: reddits
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-cm
+  labels:
+    app: reddits
+data:
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "postgres"
+  POSTGRES_DB: "postgres"
+  PGDATA: "/var/lib/postgresql/data/db-files/"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: reddits
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  clusterIP: None
+  selector:
+    app: reddits
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: postgres-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/postgres_data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: postgres-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-sts
+  labels:
+    app: reddits
+spec:
+  replicas: 1
+  serviceName: "postgres"
+  selector:
+    matchLabels:
+      app: reddits
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      volumes:
+        - name: postgres-pv
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+      containers:
+        - name: postgres
+          image: postgres:9.5-alpine
+          envFrom:
+            - configMapRef:
+                name: postgres-cm
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: postgres-pv
+              mountPath: /var/lib/postgresql/data

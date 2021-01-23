@@ -1,0 +1,137 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-cm
+  labels:
+    app: reddits
+data:
+  MASTER: "spark://spark-master:7077"
+  SPARK_CONF_DIR: "/conf"
+  SPARK_WORKER_CORES: "2"
+  SPARK_WORKER_MEMORY: "1g"
+  SPARK_WORKER_PORT: "8881"
+  SPARK_WORKER_WEBUI_PORT: "8081"
+  SPARK_PUBLIC_DNS: "127.0.0.1"
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: webspark-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/services/spark/data"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: webspark-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  labels:
+    app: reddits
+spec:
+  ports:
+    - name: masterhttp
+      port: 8080
+      targetPort: 8080
+    - name: master
+      port: 7077
+      targetPort: 7077
+    - name: support
+      port: 6066
+      targetPort: 6066
+  clusterIP: None
+  selector:
+    app: reddits
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  labels:
+    app: reddits
+spec:
+  ports:
+    - name: workerhttp
+      port: 8081
+      targetPort: 8081
+    - name: worker
+      port: 8881
+      targetPort: 8881
+  clusterIP: None
+  selector:
+    app: reddits
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-deploy
+  labels:
+    app: reddits
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reddits
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      volumes:
+        - name: webspark-pv
+          persistentVolumeClaim:
+            claimName: webspark-pvc
+      containers:
+        - name: master
+          image: kaluzny1995/webspark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: spark-cm
+          ports:
+            - name: masterhttp
+              containerPort: 8080
+            - name: master
+              containerPort: 7077
+            - name: support
+              containerPort: 6066
+          command: ['/usr/spark-2.3.1/bin/spark-class', 'org.apache.spark.deploy.master.Master', '-h', 'spark-master']
+          volumeMounts:
+            - name: webspark-pv
+              mountPath: /usr/src/app/server/main/spark_models
+
+        - name: worker
+          image: kaluzny1995/webspark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: spark-cm
+          ports:
+            - name: workerhttp
+              containerPort: 8081
+            - name: worker
+              containerPort: 8881
+          command: ['/usr/spark-2.3.1/bin/spark-class', 'org.apache.spark.deploy.worker.Worker', 'spark://spark-master:7077']
+          volumeMounts:
+            - name: webspark-pv
+              mountPath: /usr/src/app/server/main/spark_models
+

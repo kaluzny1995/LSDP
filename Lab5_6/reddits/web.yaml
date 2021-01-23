@@ -1,0 +1,94 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-cm
+  labels:
+    app: reddits
+data:
+  MONGODB_HOST: "mongodb"
+  MONGODB_PORT: "27017"
+  REDIS_HOST: "web-redis"
+  REDIS_PORT: "6379"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  labels:
+    app: reddits
+spec:
+  type: NodePort
+  ports:
+    - port: 7000
+      targetPort: 7000
+      name: http
+  selector:
+    app: reddits
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-redis
+  labels:
+    app: reddits
+spec:
+  ports:
+    - name: webredis
+      port: 6379
+      targetPort: 6379
+  clusterIP: None
+  selector:
+    app: reddits
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deploy
+  labels:
+    app: reddits
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reddits
+  template:
+    metadata:
+      labels:
+        app: reddits
+    spec:
+      volumes:
+        - name: webspark-pv
+          persistentVolumeClaim:
+            claimName: webspark-pvc
+      containers:
+        - name: web
+          image: kaluzny1995/webspark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: web-cm
+          ports:
+            - name: http
+              containerPort: 7000
+          command: ['python', '/usr/src/app/manage.py', 'runserver', '--host', '0.0.0.0', '--port', '7000']
+          volumeMounts:
+            - name: webspark-pv
+              mountPath: /usr/src/app/server/main/spark_models
+
+        - name: worker
+          image: kaluzny1995/webspark:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: web-cm
+          command: ['spark-submit', '--master', 'spark://spark-master:7077', '--packages', 'org.mongodb.spark:mongo-spark-connector_2.11:2.2.0', '--class', 'endpoint', '/usr/src/app/manage.py', 'run_worker']
+          volumeMounts:
+            - name: webspark-pv
+              mountPath: /usr/src/app/server/main/spark_models
+          
+        - name: redis
+          image: redis:3.2.11
+          ports:
+            - name: webredis
+              containerPort: 6379

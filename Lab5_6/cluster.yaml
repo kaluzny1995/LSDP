@@ -1,0 +1,36 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: eks-jakub-0
+  region: eu-central-1
+
+vpc:
+  id: vpc-010f9c26a8577e322
+  subnets:
+    private:
+      eu-central-1a:
+        id: subnet-06df2c276dac60e34
+      eu-central-1b:
+        id: subnet-021e8d2567d6db9c7
+    public:
+      eu-central-1a:
+        id: subnet-0e502fc8aacea5e0b
+      eu-central-1b:
+        id: subnet-0a23e6d8c462e59a5	 
+
+nodeGroups:
+  - name: eks-jakub-0-ng-0
+    instanceType: t2.medium
+    desiredCapacity: 2
+    volumeSize: 20
+    privateNetworking: true
+    ssh:
+      publicKeyName: jakub-keypair
+  - name: eks-jakub-0-ng-1
+    instanceType: t2.medium
+    desiredCapacity: 2
+    volumeSize: 20
+    privateNetworking: true
+    ssh:
+      publicKeyName: jakub-keypair
