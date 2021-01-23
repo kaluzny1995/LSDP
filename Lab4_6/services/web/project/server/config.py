@@ -8,7 +8,8 @@ class BaseConfig(object):
 
     DEBUG = False
     WTF_CSRF_ENABLED = True
-    REDIS_URL = 'redis://redis:6379/0'
+    REDIS_URL = f'redis://{os.environ["REDIS_HOST"]}:'\
+        + f'{os.environ["REDIS_PORT"]}/0'
     QUEUES = ['default']
 
 

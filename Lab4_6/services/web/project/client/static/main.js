@@ -131,7 +131,7 @@ function getPresenceCheck(taskID) {
         processModels('train')
       }
       else {
-        ab = alertBox(`Models loading in progress...`, 'info')
+        ab = alertBox(`Loading models in progress...`, 'info')
         $('#alerts').append(ab)
         
         console.log('trained models found')
@@ -159,7 +159,7 @@ function getPresenceCheck(taskID) {
 
 $('#retrain').on('click', function() {
   if ($('span', this).css('visibility') !== 'visible') {
-    ab = alertBox(`Retraining in progress...`, 'info')
+    ab = alertBox(`Retraining models in progress...`, 'info')
     $('#alerts').append(ab)
     
     $('#text-input').prop('disabled', 'disabled')
@@ -242,7 +242,7 @@ $('#launch').on('click', function() {
       return false
     }
     
-    ab = alertBox(`Testing in progress...`, 'info')
+    ab = alertBox(`Test launched...`, 'info')
     $('#alerts').append(ab)
     
     $('span', this).css('visibility', 'visible')
